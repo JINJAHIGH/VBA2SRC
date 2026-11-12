@@ -10,6 +10,8 @@ VBAの実行、元ファイルの保護変更、Officeへの書き戻しは行�
 ソースの実行とビルドには **Python 3.13 以上** が必要です。
 Windows x64 向けのビルド済み [VBA2SRC.exe](https://github.com/JINJAHIGH/VBA2SRC/raw/refs/heads/main/dist/VBA2SRC.exe) をダウンロードできます。
 
+出力仕様、AI に渡すファイルの選び方、VBA からの起動と JSON 解析は [AI・連携ツール向け仕様](docs/AI_GUIDE.md) を参照してください。
+
 - ファイルをEXEへドラッグ＆ドロップ：対象ファイルと同じフォルダに結果を作成。保存先の質問・ポップアップ・新しいコンソールは表示しません。
 - EXEを直接開く：ASCIIタイトルと短い対応形式の案内の後、対象パス・保存先親フォルダ・詳細ログの有無を順に質問します。
 - 引数付き起動：1回につき1ファイルを処理します。`--output` を省略すると対象ファイルと同じフォルダに保存します。
@@ -156,6 +158,5 @@ macOS、実SMB共有、Python未導入のクリーンWindows VMは未検証で�
 ## 保守
 
 本体は `vba2src_app/`、Windows用EXEのビルド処理は `scripts/` にあります。
-開発用の依存ライブラリは `python -m pip install -r requirements-dev.txt` で導入し、`python -m pytest` でテストします。Windows ではビルド後に `python scripts/verify_exe.py` で配布用EXEを検証できます。
 独自の変数・引数はPythonコード内で日本語化しています。`u16`、`u32`、`width`、`x` 等の明確な短名と外部API名は維持しています。
 `names.txt` は使用しません。JSONの項目名定義は `vba2src_app/json_output.py` にあります。

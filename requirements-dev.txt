@@ -1,9 +1,0 @@
--r requirements.txt
-
-# Windows EXE packaging and development tools.
-pyinstaller==6.22.3
-pytest==9.2.0
-ruff==0.17.4
-build==1.6.1
-setuptools==84.2.1
-wheel==0.48.0

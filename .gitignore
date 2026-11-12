@@ -17,3 +17,8 @@ build/
 /docs/history/
 /docs/VBA2SRC_利用・保守ガイド.pptx
 /requirements-lock.txt
+
+# ローカル検証用
+/tests/
+/scripts/verify_exe.py
+/requirements-dev.txt
