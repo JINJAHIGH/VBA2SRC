@@ -112,10 +112,24 @@ def メイン():
     実行("macro_debug", [マクロファイル, "-o", 出力先, "--no-ui", "--debug-log"], 0)
     二番目の結果 = next(p for p in 出力先.iterdir() if p != 最初の結果)
     assert 比較内容を取得(最初の結果) == 比較内容を取得(二番目の結果)
+    assert not (最初の結果 / "VBAまとめ").exists()
+    実行("group_by_type", [マクロファイル, "-o", 出力先, "--no-ui", "--group-by-type"], 0)
+    まとめ先 = next(出力先.glob("*/VBAまとめ"))
+    assert {p.name for p in まとめ先.iterdir()} == {
+        "標準モジュール.txt", "クラスモジュール.txt", "ドキュメントモジュール.txt", "フォーム.txt"
+    }
+    ドキュメントコード = (まとめ先 / "ドキュメントモジュール.txt").read_text(encoding="utf-8")
+    for 名前 in ("Sheet1", "ThisWorkbook"):
+        assert f"モジュール：{名前}（プロジェクト：project_001）" in ドキュメントコード
+        assert f'Attribute VB_Name = "{名前}"' in ドキュメントコード
+    assert 比較内容を取得(最初の結果) == {
+        名前: ハッシュ for 名前, ハッシュ in 比較内容を取得(まとめ先.parent).items() if not 名前.startswith("VBAまとめ/")
+    }
     実行("beside_input_no_output", [平文データ], 0)
     assert len(list(入力フォルダ.glob("VBAなし.xlsx_*"))) == 1
     assert not list(作業フォルダ.glob("VBAなし.xlsx_*"))
-    実行("no_vba", [平文データ, "-o", 出力先, "--no-ui"], 0)
+    実行("no_vba", [平文データ, "-o", 出力先, "--no-ui", "--group-by-type"], 0)
+    assert not any(next(出力先.glob(f"{平文データ.name}_*/VBAまとめ")).iterdir())
     実行("defined_names_no_vba", [名前付きブック, "-o", 出力先, "--no-ui"], 0)
     名前情報 = json.loads(
         next(出力先.glob("名前付き.xlsx_*/設定情報/名前定義一覧.json")).read_text(encoding="utf-8")
@@ -130,13 +144,16 @@ def メイン():
     実行("corrupt", [破損ファイル, "-o", 出力先, "--no-ui", "--debug-log"], 1)
     実行("legacy_candidates_unset", [旧方式, "-o", 出力先, "--no-ui"], 0)
     for 表示ラベル, 対象 in (("word", Wordファイル), ("access", Accessファイル)):
-        実行(表示ラベル, [対象, "-o", 出力先, "--no-ui"], 0)
+        実行(表示ラベル, [対象, "-o", 出力先, "--no-ui", "--group-by-type"], 0)
         保存先 = next(出力先.glob(対象.name + "_*"))
         引数 = json.loads((保存先 / "設定情報/条件付きコンパイル引数.json").read_text(encoding="utf-8"))
         assert 引数["設定一覧"] == [{"名前": "Test", "設定値": -1}]
         参照 = json.loads((保存先 / "設定情報/参照設定.json").read_text(encoding="utf-8"))
         assert 参照["参照設定一覧"][0]["名前"] == "Alpha"
         assert list(保存先.rglob("*.bas")) and list(保存先.rglob("*.cls"))
+        ドキュメントコード = (保存先 / "VBAまとめ/ドキュメントモジュール.txt").read_text(encoding="utf-8")
+        名前 = "ThisDocument" if 表示ラベル == "word" else "Form_Orders"
+        assert f"モジュール：{名前}（プロジェクト：project_001）" in ドキュメントコード
     実行("access_no_vba", [Access平文, "-o", 出力先, "--no-ui"], 0)
     実行("multiple_targets", [マクロファイル, 平文データ, "--no-ui"], 2)
     実行("missing_target", ["--no-ui"], 2)

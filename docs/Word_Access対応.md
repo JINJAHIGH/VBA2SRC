@@ -1,4 +1,4 @@
-# VBA2SRC 1.4 — Word・Access対応
+# VBA2SRC — Word・Access対応
 
 Excelと同じ起動方法・保存先・UTF-8/LF・日本語JSONスキーマ2を使用します。
 実行時にOffice、COM、ODBC、Javaは不要です。入力は一度だけ読み、以降はメモリ上で解析します。
@@ -15,6 +15,7 @@ Accessはカタログから現行ストレージを読み、削除済みペー�
 Access解析にpyOpenVBA 6.6.0（MIT）を追加しています。内部RawRow APIへの依存はaccess.pyへ限定し、更新時は追加テストとEXE検証を実行してください。
 
 WordのThisDocument、Accessフォーム／レポートのコードは、PROJECTのDocument宣言に従ってドキュメントモジュールへ保存します。
+`--group-by-type` を指定すると、これらのコードは結果フォルダ内の `VBAまとめ/ドキュメントモジュール.txt` にも収録します。
 名前がForm_やReport_から始まるだけでは分類しません。標準・クラスモジュールもPROJECTとdirで判定します。
 コンパイル引数は保存原文と解析値、参照設定は保存されたLIBID・GUID・版・パス・順序を保持します。
 参照の現在PC上での解決や、VBA・Accessマクロの実行はしません。dirに存在しない暗黙のホスト参照は合成しません。

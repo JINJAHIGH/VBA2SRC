@@ -107,6 +107,51 @@ def test_multi_project_separation_and_report_order(一時フォルダ):
         )
 
 
+def test_cli_group_by_type_preserves_sources_and_distinguishes_projects(一時フォルダ):
+    パス = ブックを生成(一時フォルダ / "まとめ.xlsm", プロジェクト一覧=2)
+    通常出力先 = 一時フォルダ / "通常"
+    追加出力先 = 一時フォルダ / "追加"
+    assert メイン([str(パス), "-o", str(通常出力先), "--no-ui"]) == 0
+    assert メイン([str(パス), "-o", str(追加出力先), "--no-ui", "--group-by-type"]) == 0
+    通常結果 = next(通常出力先.iterdir())
+    追加結果 = next(追加出力先.iterdir())
+    assert not (通常結果 / "VBAまとめ").exists()
+    assert 比較スナップショット(通常結果) == {
+        名前: データ for 名前, データ in 比較スナップショット(追加結果).items() if not 名前.startswith("VBAまとめ/")
+    }
+    種類別ファイル名 = {
+        "standard": "標準モジュール.txt",
+        "class": "クラスモジュール.txt",
+        "document": "ドキュメントモジュール.txt",
+        "form": "フォーム.txt",
+    }
+    まとめ先 = 追加結果 / "VBAまとめ"
+    assert {p.name for p in まとめ先.iterdir()} == set(種類別ファイル名.values())
+    プロジェクト一覧 = 抽出(パス).プロジェクト一覧
+    for 種類, ファイル名 in 種類別ファイル名.items():
+        期待内容 = "".join(
+            f"' ===== モジュール：{m.名前}（プロジェクト：{p.識別子}） =====\n{m.コード}\n"
+            for p in プロジェクト一覧
+            for m in p.モジュール一覧
+            if m.種類 == 種類
+        )
+        assert (まとめ先 / ファイル名).read_bytes() == 期待内容.encode("utf-8")
+
+
+def test_cli_group_by_type_includes_unclassified_code_and_omits_unreadable_code(一時フォルダ):
+    パス = ブックを生成(
+        一時フォルダ / "partial.xlsm",
+        フォームあり=False,
+        モジュールを欠損=True,
+        モジュール仕様=[("欠損", "Module"), ("分類不能", "Undefined")],
+    )
+    出力先 = 一時フォルダ / "結果"
+    assert メイン([str(パス), "-o", str(出力先), "--group-by-type", "--no-ui"]) == 3
+    まとめ先 = next(出力先.iterdir()) / "VBAまとめ"
+    assert [p.name for p in まとめ先.iterdir()] == ["未分類.txt"]
+    assert 'Attribute VB_Name = "分類不能"' in (まとめ先 / "未分類.txt").read_text(encoding="utf-8")
+
+
 @pytest.mark.parametrize("破損状態,期待値", [(False, 0), (True, 3)])
 def test_success_and_partial_input_unchanged(一時フォルダ, 破損状態, 期待値):
     パス = ブックを生成(一時フォルダ / "partial.xlsm", モジュールを欠損=破損状態)

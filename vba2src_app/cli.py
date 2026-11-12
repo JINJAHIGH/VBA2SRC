@@ -104,6 +104,9 @@ def 引数解析器を作成():
     結果.add_argument(
         "--debug-log", dest="詳細ログ", action="store_true", help="詳細ログ・例外スタックを記録"
     )
+    結果.add_argument(
+        "--group-by-type", dest="種類別出力", action="store_true", help="VBAまとめフォルダにモジュールの種類別テキストを追加"
+    )
     結果.add_argument("--version", action="version", version=f"VBA2SRC {__version__}")
     return 結果
 
@@ -183,7 +186,7 @@ def メイン(起動引数=None):
         処理段階 = "入力ファイルの解析"
         結果 = 抽出(対象, config.VBA保護パスワード候補)
         処理段階 = "抽出結果の書込み"
-        抽出結果を保存(フォルダ, 結果)
+        抽出結果を保存(フォルダ, 結果, 種類別出力=解析済み引数.種類別出力)
         for コード in sorted(
             set(
                 結果.失敗一覧

@@ -3,7 +3,7 @@
 Officeを起動せず、Excel・Word・AccessファイルからVBAソースと保存情報を読み取り専用で抽出します。
 VBAの実行、元ファイルの保護変更、Officeへの書き戻しは行いません。
 
-バージョン1.4.0、JSONスキーマ2。ビルド済みのEXEはPythonやOfficeがないPCでも実行できます。
+バージョン1.5.0、JSONスキーマ2。ビルド済みのEXEはPythonやOfficeがないPCでも実行できます。
 
 ## 起動方法
 
@@ -29,6 +29,7 @@ python vba2src.py "C:\Work\データベース.accdb" --no-ui
 | `-o` / `--output` | 結果フォルダを格納する親フォルダ。存在しなければ作成 |
 | `--no-ui` | 新しい画面と入力待ちを無効化。既存の標準出力は利用可能 |
 | `--debug-log` | 詳細ログと例外スタックを追加。比較用ファイルは変わらない |
+| `--group-by-type` | 通常の出力に加えて `VBAまとめ/` にモジュールの種類別テキストを保存 |
 | `-h` / `--help` | 使い方 |
 | `--version` | バージョン |
 
@@ -86,6 +87,26 @@ WinMergeでは結果フォルダ同士を比較し、`ログ/` を除外して�
 `localSheetId`はシート位置（0始まり）として解釈し、保存された`sheetId`と区別します。非表示属性が未保存ならJSONは`null`です。
 正常な空一覧は「設定なし」。不正な適用先等があれば回収済み項目を残して「一部取得」とし、確認済みのVBA有無とは分けて終了コード3を返します。
 構造の参照資料：[Microsoft Learn DefinedName](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.spreadsheet.definedname?view=openxml-3.0.1)。
+
+### VBAコードを種類別にまとめる
+
+AIに渡すファイル数を減らすには `--group-by-type` を指定します。
+
+```powershell
+python vba2src.py "C:\Work\対象.xlsm" --group-by-type --no-ui
+.\dist\VBA2SRC.exe "C:\Work\対象.xlsm" --group-by-type --no-ui
+```
+
+結果フォルダ直下の `VBAまとめ/` に、取得できたコードがある種類だけ一つずつテキストファイルを作ります。
+ファイル名は `標準モジュール.txt`、`フォーム.txt`、`クラスモジュール.txt`、`ドキュメントモジュール.txt`、`未分類.txt` です。
+
+同じ種類のコードは複数のVBAプロジェクトにまたがって一つのファイルに収録します。各章の先頭に、元のモジュール名とプロジェクト識別子を付けます。
+
+```vb
+' ===== モジュール：集計処理（プロジェクト：project_001） =====
+```
+
+各章はコメント、空行、Attributeを含む抽出済みコードをそのまま収録し、UTF-8（BOMなし）・LFで保存します。VBAがない場合など、コードが一つも取得できなければ `VBAまとめ/` は空になります。
 
 ## 終了コード
 
