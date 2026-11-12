@@ -348,6 +348,6 @@ def ディレクトリを解析(データ):
             解析情報.モジュール一覧.append(対象モジュール)
         読取器.期待値を確認(読取器.u16(), 0x10)
         読取器.期待値を確認(読取器.u32(), 0)
-    except ValueError, LookupError, struct.error:
+    except (ValueError, LookupError, struct.error):
         解析情報.失敗一覧.append(処理段階 + "_READ_FAILED")
     return 解析情報

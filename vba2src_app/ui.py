@@ -31,7 +31,7 @@ def 端末色を使える(ストリーム):
             関数群.GetConsoleMode(ハンドル, ctypes.byref(モード))
             and 関数群.SetConsoleMode(ハンドル, モード.value | 0x0004)
         )
-    except OSError, ValueError, AttributeError:
+    except (OSError, ValueError, AttributeError):
         return False
 
 

@@ -1,7 +1,7 @@
 ﻿# Windows PowerShell 5.1 / PowerShell 7 対応。日本語のためUTF-8 BOMで保存する。
 [CmdletBinding()]
 param(
-    [string]$Python指定 = '3.15'
+    [string]$Python指定 = '3.13'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -183,8 +183,13 @@ try {
     $script:ログ書込器.AutoFlush = $true
     $script:ログ書込器.NewLine = "`n"
     ビルドログを表示 "ビルドログ：$ログ保存先"
-    $Pythonコマンド = (Get-Command py -CommandType Application -ErrorAction Stop).Source
-    $Python引数 = @("-$Python指定")
+    if (Test-Path -LiteralPath $Python指定 -PathType Leaf) {
+        $Pythonコマンド = (Resolve-Path -LiteralPath $Python指定).ProviderPath
+        $Python引数 = @()
+    } else {
+        $Pythonコマンド = (Get-Command py -CommandType Application -ErrorAction Stop).Source
+        $Python引数 = @("-$Python指定")
+    }
     外部コマンドを実行 $Pythonコマンド ($Python引数 + @('scripts/check_dependencies.py')) '依存ライブラリ確認' 0 15
     外部コマンドを実行 $Pythonコマンド ($Python引数 + @('-m', 'pip', 'check')) '依存関係の整合性確認' 15 20
     外部コマンドを実行 $Pythonコマンド ($Python引数 + @('scripts/build_notices.py')) 'ライセンス収集' 20 50

@@ -5,9 +5,10 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 build/
-dist/
+/dist/*
 /output/
 *.exe
+!/dist/VBA2SRC.exe
 *.zip
 *.log
 *.egg-info/

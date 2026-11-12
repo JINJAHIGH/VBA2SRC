@@ -27,6 +27,8 @@ if ライセンス通知.is_file():
                     hiddenimports=[],
                     hookspath=[], runtime_hooks=[], excludes=["tkinter"], noarchive=False)
 Pythonアーカイブ = PYZ(解析定義.pure)
-実行ファイル = EXE(Pythonアーカイブ, 解析定義.scripts, 解析定義.binaries, 解析定義.datas, [], name="VBA2SRC",
+# リダイレクトされた標準入出力でも、日本語のパスをUTF-8で扱う。
+実行オプション = [("X utf8", None, "OPTION")]
+実行ファイル = EXE(Pythonアーカイブ, 解析定義.scripts, 解析定義.binaries, 解析定義.datas, 実行オプション, name="VBA2SRC",
           debug=False, bootloader_ignore_signals=False, strip=False, upx=False,
           console=False, disable_windowed_traceback=True)

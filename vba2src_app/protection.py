@@ -75,7 +75,7 @@ def 保護情報を解析(プロパティ, 文字コード, 候補一覧):
                 符号化データ = bytes.fromhex(値一覧[0])
                 if 符号化データ[0] ^ 符号化データ[2] != sum(識別子一覧[0].encode("ascii")) % 256:
                     結果["diagnostics"].append(f"{フィールド}_PROJECT_KEY_INCONSISTENT")
-        except ValueError, UnicodeError:
+        except (ValueError, UnicodeError):
             結果["diagnostics"].append(f"{フィールド}_INVALID")
     保護フラグデータ = 復元データ.get("CMG")
     if 保護フラグデータ is not None:
@@ -130,7 +130,7 @@ def 保護情報を解析(プロパティ, 文字コード, 候補一覧):
             for 候補 in 候補一覧:
                 try:
                     符号化データ = 候補.encode(文字コード, errors="strict")
-                except UnicodeError, LookupError, AttributeError:
+                except (UnicodeError, LookupError, AttributeError):
                     符号化不能あり = True
                     continue
                 if b"\0" in 符号化データ:

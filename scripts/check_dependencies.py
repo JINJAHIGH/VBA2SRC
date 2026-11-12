@@ -33,6 +33,9 @@ def 要件を収集(定義パス, 読取済み=None):
 def メイン():
     ルート = Path(__file__).resolve().parent.parent
     print(f"Python {platform.python_version()} / {struct.calcsize('P') * 8} bit / {sys.platform}")
+    if sys.version_info < (3, 13):
+        print("ビルドには Python 3.13 以上が必要です。", file=sys.stderr)
+        return 1
     if sys.platform != "win32":
         print("Windows用EXEのビルドはWindowsで実行してください。", file=sys.stderr)
         return 1
@@ -62,7 +65,7 @@ def メイン():
         print("\n依存関係の確認に失敗しました。", file=sys.stderr)
         for 診断 in 失敗一覧:
             print(診断, file=sys.stderr)
-        print("導入例：py -3.15 -m pip install -r requirements-build.txt", file=sys.stderr)
+        print("導入例：py -3.13 -m pip install -r requirements-build.txt", file=sys.stderr)
         return 1
     print("依存ライブラリのバージョンと読込みを確認しました。")
     return 0

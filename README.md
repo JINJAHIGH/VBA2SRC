@@ -7,19 +7,20 @@ VBAの実行、元ファイルの保護変更、Officeへの書き戻しは行�
 
 ## 起動方法
 
-ソースはPythonで実行できます。WindowsでEXEを使う場合は、[Windows用EXEの作成](#windows用exeの作成)の手順でビルドしてください。
+ソースの実行とビルドには **Python 3.13 以上** が必要です。
+Windows x64 向けのビルド済み [VBA2SRC.exe](https://github.com/JINJAHIGH/VBA2SRC/raw/refs/heads/main/dist/VBA2SRC.exe) をダウンロードできます。
 
 - ファイルをEXEへドラッグ＆ドロップ：対象ファイルと同じフォルダに結果を作成。保存先の質問・ポップアップ・新しいコンソールは表示しません。
 - EXEを直接開く：ASCIIタイトルと短い対応形式の案内の後、対象パス・保存先親フォルダ・詳細ログの有無を順に質問します。
 - 引数付き起動：1回につき1ファイルを処理します。`--output` を省略すると対象ファイルと同じフォルダに保存します。
 
 ```powershell
-py -3.15 -m pip install -r requirements.txt
-py -3.15 vba2src.py "C:\Work\対象 ファイル (1).xlsm"
-py -3.15 vba2src.py "Y:\部門共通\対象.xlsm" -o "Y:\抽出結果" --no-ui --debug-log
+py -3.13 -m pip install -r requirements.txt
+py -3.13 vba2src.py "C:\Work\対象 ファイル (1).xlsm"
+py -3.13 vba2src.py "Y:\部門共通\対象.xlsm" -o "Y:\抽出結果" --no-ui --debug-log
 .\dist\VBA2SRC.exe "\\server\share\対象.xlsm" --no-ui
-py -3.15 vba2src.py "C:\Work\文書.docm" --no-ui
-py -3.15 vba2src.py "C:\Work\データベース.accdb" --no-ui
+py -3.13 vba2src.py "C:\Work\文書.docm" --no-ui
+py -3.13 vba2src.py "C:\Work\データベース.accdb" --no-ui
 ```
 
 | 引数 | 動作 |
@@ -104,7 +105,7 @@ WinMergeでは結果フォルダ同士を比較し、`ログ/` を除外して�
 Windows上で実行します。macOSからWindows用EXEは作成しません。
 
 ```powershell
-py -3.15 -m pip install -r requirements-build.txt
+py -3.13 -m pip install -r requirements-build.txt
 .\scripts\build.ps1
 ```
 
@@ -114,10 +115,10 @@ ASCIIタイトルの後で `yes` と回答すると、依存確認、ライセ�
 終了時には結果ブロックへ成果物・停止した工程・ログの場所をまとめます。
 ログは `build/logs/`、成果物は `dist/VBA2SRC.exe` です。
 `dist/` にLICENSEと第三者ライセンス通知も配置します。ビルド終了コードは正常0、失敗1、中止130です。
-Python指定の変更例：`.\scripts\build.ps1 -Python指定 3.15`。
+`-Python指定` にはバージョン番号（例 `3.15`）や仮想環境の実行ファイル（例 `.venv\Scripts\python.exe`）を指定できます。
 
 実行依存：oletools 0.60.2、olefile 0.47、msoffcrypto-tool 6.1.0、pyOpenVBA 6.6.0。
-確認環境：Windows 11 x64、Python 3.15.2 x64、PyInstaller 6.22.3。
+配布EXEのビルド・確認環境は Windows 11 x64、Python 3.13.18 x64、PyInstaller 6.22.3 です。
 
 ## 対応範囲
 

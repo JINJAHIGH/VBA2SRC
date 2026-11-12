@@ -38,7 +38,7 @@ def 対話モードを実行(終了待ち=False):
             try:
                 if 対象 and Path(対象).is_file():
                     break
-            except OSError, ValueError:
+            except (OSError, ValueError):
                 pass
             色付き表示("  ファイルが見つかりません。パス・接続・権限を確認してください。", "注意")
         既定値 = 既定親フォルダを取得(config.既定保存先親フォルダ)
@@ -49,7 +49,7 @@ def 対話モードを実行(終了待ち=False):
             try:
                 if not Path(出力).exists() or Path(出力).is_dir():
                     break
-            except OSError, ValueError:
+            except (OSError, ValueError):
                 pass
             色付き表示("  フォルダとして使用できません。別の保存先を入力してください。", "注意")
         入力見出しを表示(3, "詳細ログ")
@@ -63,12 +63,12 @@ def 対話モードを実行(終了待ち=False):
         if 詳細ログ in ("y", "yes"):
             引数一覧.append("--debug-log")
         コード = メイン(引数一覧)
-    except EOFError, KeyboardInterrupt:
+    except (EOFError, KeyboardInterrupt):
         色付き表示("\n  中止しました。", "注意")
     if 終了待ち and sys.stdin.isatty():
         try:
             input("  Enterキーで終了 > ")
-        except EOFError, KeyboardInterrupt:
+        except (EOFError, KeyboardInterrupt):
             pass
     return コード
 

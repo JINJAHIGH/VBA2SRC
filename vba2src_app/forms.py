@@ -280,7 +280,7 @@ def フォームを抽出(OLEファイル, ストレージ, 名前):
                     コントロール["properties"] = コントロールプロパティを取得(
                         オブジェクトデータ[開始位置 : 開始位置 + サイズ], 種類
                     )
-                except ValueError, IndexError:
+                except (ValueError, IndexError):
                     結果["diagnostics"].append("FORM_CONTROL_READ_FAILED")
                 開始位置 += サイズ
             else:

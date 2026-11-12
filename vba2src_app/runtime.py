@@ -46,7 +46,7 @@ def 安全に表示(メッセージ, 例外情報=False):
         try:
             ストリーム.write(str(メッセージ) + "\n")
             ストリーム.flush()
-        except OSError, ValueError, UnicodeError:
+        except (OSError, ValueError, UnicodeError):
             pass
 
 
@@ -116,6 +116,6 @@ def コンソールを準備(作成を許可=False):
                             buffering=1,
                         ),
                     )
-            except OSError, ValueError:
+            except (OSError, ValueError):
                 pass
     return 作成済み
