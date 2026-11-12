@@ -12,3 +12,8 @@ build/
 *.zip
 *.log
 *.egg-info/
+
+# 旧開発環境の記録とローカル用資料
+/docs/history/
+/docs/VBA2SRC_利用・保守ガイド.pptx
+/requirements-lock.txt

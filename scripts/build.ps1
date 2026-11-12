@@ -1,7 +1,7 @@
 ﻿# Windows PowerShell 5.1 / PowerShell 7 対応。日本語のためUTF-8 BOMで保存する。
 [CmdletBinding()]
 param(
-    [string]$Python指定 = '3.13'
+    [string]$Python指定 = 'python'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -162,10 +162,11 @@ try {
 Write-Host '  WINDOWS EXE BUILDER' -ForegroundColor DarkGray
 Write-Host ''
 Write-Host '  依存確認の後、Windows用EXEを作成します。'
-Write-Host '  dist内の同名成果物を更新します。依存の自動導入は行いません。' -ForegroundColor DarkGray
+Write-Host '  不足している依存ライブラリは一件ずつ導入を確認します。' -ForegroundColor DarkGray
+Write-Host '  ビルドに進むとdist内の同名成果物を更新します。' -ForegroundColor DarkGray
 Write-Host ''
-$回答 = [string](Read-Host 'ビルドを実行しますか？ 続行する場合は yes を入力')
-if (-not $回答.Trim().Equals('yes', [System.StringComparison]::OrdinalIgnoreCase)) {
+$回答 = Read-Host 'ビルドを実行しますか？ 続行する場合は yes を入力'
+if (([string]$回答).Trim() -ne 'yes') {
     結果を表示 '中止' '成果物は更新していません。'
     exit 130
 }
@@ -186,11 +187,38 @@ try {
     if (Test-Path -LiteralPath $Python指定 -PathType Leaf) {
         $Pythonコマンド = (Resolve-Path -LiteralPath $Python指定).ProviderPath
         $Python引数 = @()
+    } elseif ($Python指定 -eq 'python') {
+        $Pythonコマンド = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $Python引数 = @()
     } else {
         $Pythonコマンド = (Get-Command py -CommandType Application -ErrorAction Stop).Source
         $Python引数 = @("-$Python指定")
     }
-    外部コマンドを実行 $Pythonコマンド ($Python引数 + @('scripts/check_dependencies.py')) '依存ライブラリ確認' 0 15
+    外部コマンドを実行 $Pythonコマンド ($Python引数 + @('scripts/check_dependencies.py', '--environment-only')) 'Python環境確認' 0 2
+
+    $Pip引数 = $Python引数 + @('-m', 'pip', '--disable-pip-version-check', '--no-input')
+    $計画パス = [System.IO.Path]::ChangeExtension($ログ保存先, '.pip.json')
+    try {
+        $計画引数 = $Pip引数 + @('install', '--dry-run', '--quiet', '--report', $計画パス, '-r', 'requirements-build.txt')
+        外部コマンドを実行 $Pythonコマンド $計画引数 '依存ライブラリの確認' 2 7
+        $導入計画 = Get-Content -LiteralPath $計画パス -Raw -Encoding UTF8 | ConvertFrom-Json
+    } finally {
+        if (Test-Path -LiteralPath $計画パス) { Remove-Item -LiteralPath $計画パス }
+    }
+    $導入対象 = @(foreach ($項目 in $導入計画.install) { '{0}=={1}' -f $項目.metadata.name, $項目.metadata.version })
+    foreach ($ライブラリ in $導入対象) {
+        ビルドログを表示 "$ライブラリ を導入しますか？ 同意する場合は yes を入力"
+        $回答 = Read-Host '回答'
+        if (([string]$回答).Trim() -ne 'yes') {
+            結果を表示 '中止' "$ライブラリ の導入が承認されなかったため、ビルドを中止しました。" @("ログ：$ログ保存先")
+            exit 130
+        }
+    }
+    if ($導入対象.Count -gt 0) {
+        # 間接依存も確認済みのバージョンだけを導入する。
+        外部コマンドを実行 $Pythonコマンド ($Pip引数 + @('install', '--no-deps') + $導入対象) '承認済みライブラリの導入' 7 13
+    }
+    外部コマンドを実行 $Pythonコマンド ($Python引数 + @('scripts/check_dependencies.py')) '依存ライブラリの読込み確認' 13 15
     外部コマンドを実行 $Pythonコマンド ($Python引数 + @('-m', 'pip', 'check')) '依存関係の整合性確認' 15 20
     外部コマンドを実行 $Pythonコマンド ($Python引数 + @('scripts/build_notices.py')) 'ライセンス収集' 20 50
     外部コマンドを実行 $Pythonコマンド ($Python引数 + @('-m', 'PyInstaller', '--clean', '--noconfirm', '--log-level', 'INFO', 'VBA2SRC.spec')) 'PyInstaller EXE作成' 50 88 -PyInstaller工程

@@ -15,12 +15,12 @@ Windows x64 向けのビルド済み [VBA2SRC.exe](https://github.com/JINJAHIGH/
 - 引数付き起動：1回につき1ファイルを処理します。`--output` を省略すると対象ファイルと同じフォルダに保存します。
 
 ```powershell
-py -3.13 -m pip install -r requirements.txt
-py -3.13 vba2src.py "C:\Work\対象 ファイル (1).xlsm"
-py -3.13 vba2src.py "Y:\部門共通\対象.xlsm" -o "Y:\抽出結果" --no-ui --debug-log
+python -m pip install -r requirements.txt
+python vba2src.py "C:\Work\対象 ファイル (1).xlsm"
+python vba2src.py "Y:\部門共通\対象.xlsm" -o "Y:\抽出結果" --no-ui --debug-log
 .\dist\VBA2SRC.exe "\\server\share\対象.xlsm" --no-ui
-py -3.13 vba2src.py "C:\Work\文書.docm" --no-ui
-py -3.13 vba2src.py "C:\Work\データベース.accdb" --no-ui
+python vba2src.py "C:\Work\文書.docm" --no-ui
+python vba2src.py "C:\Work\データベース.accdb" --no-ui
 ```
 
 | 引数 | 動作 |
@@ -43,7 +43,7 @@ Windows版は通常起動で新しいコンソールを作らず、必要な場�
 本体はtkinterを使用せず、配布EXEにもTkを同梱しません。
 PowerShellから終了を待つ場合は `Start-Process -Wait -PassThru` を使用できます。
 
-macOSでは `python3 -m pip install -r requirements.txt` の後、`python3 vba2src.py target --no-ui` で起動する構成です。macOS実機では未検証です。
+macOSでは、仮想環境など `python` が使える環境で `python -m pip install -r requirements.txt` を実行した後、`python vba2src.py target --no-ui` で起動します。macOS実機では未検証です。
 
 ## 設定
 
@@ -105,17 +105,17 @@ WinMergeでは結果フォルダ同士を比較し、`ログ/` を除外して�
 Windows上で実行します。macOSからWindows用EXEは作成しません。
 
 ```powershell
-py -3.13 -m pip install -r requirements-build.txt
 .\scripts\build.ps1
 ```
 
-ASCIIタイトルの後で `yes` と回答すると、依存確認、ライセンス収集、PyInstallerによるビルド、EXEの起動確認を順に実行します。
-依存不足は案内して停止し、自動インストールしません。ログを逐次表示し、進捗率はホストの進捗バーだけに表示します。率は工程に基づく目安です。
+ASCIIタイトルの後で `yes` と回答すると、使用する Python と pip で依存関係を確認します。
+追加やバージョン変更が必要なライブラリは、間接依存も含めて一件ずつ名前とバージョンを表示します。すべてに `yes` と回答すると導入し、一件でも辞退すると中止します。
+依存関係の確認後、ライセンス収集、PyInstallerによるビルド、EXEの起動確認を順に実行します。ログを逐次表示し、進捗率はホストの進捗バーだけに表示します。率は工程に基づく目安です。
 百分率を含む文字のバーや「（概算）」の表示はありません。工程見出しはシアン、完了は緑、中止は黄、失敗は赤で表示します。
 終了時には結果ブロックへ成果物・停止した工程・ログの場所をまとめます。
 ログは `build/logs/`、成果物は `dist/VBA2SRC.exe` です。
 `dist/` にLICENSEと第三者ライセンス通知も配置します。ビルド終了コードは正常0、失敗1、中止130です。
-`-Python指定` にはバージョン番号（例 `3.15`）や仮想環境の実行ファイル（例 `.venv\Scripts\python.exe`）を指定できます。
+既定では PATH 上の `python` を使用します。`-Python指定` には Python ランチャーで選ぶバージョン番号（例 `3.13`）や、仮想環境の実行ファイル（例 `.venv\Scripts\python.exe`）を指定できます。
 
 実行依存：oletools 0.60.2、olefile 0.47、msoffcrypto-tool 6.1.0、pyOpenVBA 6.6.0。
 配布EXEのビルド・確認環境は Windows 11 x64、Python 3.13.18 x64、PyInstaller 6.22.3 です。
@@ -135,5 +135,6 @@ macOS、実SMB共有、Python未導入のクリーンWindows VMは未検証で�
 ## 保守
 
 本体は `vba2src_app/`、Windows用EXEのビルド処理は `scripts/` にあります。
+開発用の依存ライブラリは `python -m pip install -r requirements-dev.txt` で導入し、`python -m pytest` でテストします。Windows ではビルド後に `python scripts/verify_exe.py` で配布用EXEを検証できます。
 独自の変数・引数はPythonコード内で日本語化しています。`u16`、`u32`、`width`、`x` 等の明確な短名と外部API名は維持しています。
 `names.txt` は使用しません。JSONの項目名定義は `vba2src_app/json_output.py` にあります。

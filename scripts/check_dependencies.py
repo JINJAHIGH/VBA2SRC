@@ -1,5 +1,6 @@
-"""ビルド前に固定バージョンと必要な実行ライブラリを確認する。自動インストールはしない。"""
+"""ビルド前にPython環境と依存ライブラリを検証する。"""
 
+import argparse
 import importlib
 import platform
 import re
@@ -31,6 +32,9 @@ def 要件を収集(定義パス, 読取済み=None):
 
 
 def メイン():
+    引数解析器 = argparse.ArgumentParser(description=__doc__)
+    引数解析器.add_argument("--environment-only", action="store_true", help="PythonのバージョンとOSだけを確認する")
+    引数 = 引数解析器.parse_args()
     ルート = Path(__file__).resolve().parent.parent
     print(f"Python {platform.python_version()} / {struct.calcsize('P') * 8} bit / {sys.platform}")
     if sys.version_info < (3, 13):
@@ -39,6 +43,8 @@ def メイン():
     if sys.platform != "win32":
         print("Windows用EXEのビルドはWindowsで実行してください。", file=sys.stderr)
         return 1
+    if 引数.environment_only:
+        return 0
     失敗一覧 = []
     for 名前, 必要版 in sorted(要件を収集(ルート / "requirements-build.txt").items()):
         try:
@@ -65,7 +71,7 @@ def メイン():
         print("\n依存関係の確認に失敗しました。", file=sys.stderr)
         for 診断 in 失敗一覧:
             print(診断, file=sys.stderr)
-        print("導入例：py -3.13 -m pip install -r requirements-build.txt", file=sys.stderr)
+        print("導入例：python -m pip install -r requirements-build.txt", file=sys.stderr)
         return 1
     print("依存ライブラリのバージョンと読込みを確認しました。")
     return 0
