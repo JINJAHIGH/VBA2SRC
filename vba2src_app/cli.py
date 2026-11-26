@@ -1,18 +1,15 @@
 """引数と質問への回答を受け付け、抽出・保存・コンソール表示を統括する。"""
 
 import argparse
-import logging
-import stat
 import sys
-import time
-from importlib import metadata as メタデータ
 from pathlib import Path
 
 import vba2src_config as config
 
 from . import __version__
-from .paths import 保存先の親を決定, 既定親フォルダを取得, 結果フォルダを作成
-from .runtime import LFログハンドラー, コンソールを準備, 例外を記録, 安全に表示, 標準ストリームを補完
+from .paths import 既定親フォルダを取得
+from .run import 抽出を実行
+from .runtime import コンソールを準備, 安全に表示, 標準ストリームを補完
 from .ui import 入力見出しを表示, 抽出結果を表示, 色付き表示, 起動案内を表示, 通知
 
 
@@ -105,7 +102,10 @@ def 引数解析器を作成():
         "--debug-log", dest="詳細ログ", action="store_true", help="詳細ログ・例外スタックを記録"
     )
     結果.add_argument(
-        "--group-by-type", dest="種類別出力", action="store_true", help="VBAまとめフォルダにモジュールの種類別テキストを追加"
+        "--group-by-type",
+        dest="種類別出力",
+        action="store_true",
+        help="VBAまとめフォルダにモジュールの種類別テキストを追加",
     )
     結果.add_argument("--version", action="version", version=f"VBA2SRC {__version__}")
     return 結果
@@ -130,113 +130,15 @@ def メイン(起動引数=None):
         return 2
     except SystemExit as 終了情報:
         return 終了情報.code
-    フォルダ = None
-    ログハンドラー = None
-    ロガー = logging.getLogger("vba2src")
-    開始時刻 = time.monotonic()
-    処理段階 = "入力ファイルの確認"
-    try:
-        対象 = Path(解析済み引数.対象).resolve()
-        try:
-            対象ファイル状態 = 対象.stat()
-        except FileNotFoundError:
-            通知(
-                "VBA2SRC 失敗",
-                "INPUT_NOT_FOUND：対象ファイルが見つかりません。パスとネットワーク接続を確認してください。",
-                True,
-            )
-            return 1
-        except PermissionError:
-            通知(
-                "VBA2SRC 失敗",
-                "INPUT_ACCESS_DENIED：対象ファイルへのアクセスが拒否されました。",
-                True,
-            )
-            return 1
-        if not stat.S_ISREG(対象ファイル状態.st_mode):
-            通知(
-                "VBA2SRC 失敗",
-                "対象ファイルが存在しないか、通常ファイルではありません。",
-                True,
-            )
-            return 1
-        処理段階 = "保存先の決定"
-        # ドラッグ起動を特別扱いせず、引数付き起動の保存規則を一か所で決定する。
-        親 = 保存先の親を決定(対象, 解析済み引数.出力)
-        処理段階 = "結果フォルダの作成"
-        フォルダ = 結果フォルダを作成(親, 対象.name)
-        ログフォルダ = フォルダ / "ログ"
-        ログフォルダ.mkdir()
-        ログハンドラー = LFログハンドラー(ログフォルダ / "実行ログ.txt", encoding="utf-8")
-        ログハンドラー.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-        ロガー.addHandler(ログハンドラー)
-        ロガー.setLevel(logging.DEBUG if 解析済み引数.詳細ログ else logging.INFO)
-        ロガー.propagate = False
-        ロガー.info("開始 VBA2SRC %s input=%s output=%s", __version__, 対象, フォルダ)
-        ロガー.info("Python=%s OS=%s", sys.version.split()[0], sys.platform)
-        for 配布パッケージ名 in ("oletools", "olefile", "msoffcrypto-tool", "cryptography", "pyOpenVBA"):
-            try:
-                バージョン = メタデータ.version(配布パッケージ名)
-            except メタデータ.PackageNotFoundError:
-                バージョン = "不明（バンドル）"
-            ロガー.info("library %s=%s", 配布パッケージ名, バージョン)
-        from .extract import 抽出
-        from .output import 抽出結果を保存
-
-        処理段階 = "入力ファイルの解析"
-        結果 = 抽出(対象, config.VBA保護パスワード候補)
-        処理段階 = "抽出結果の書込み"
-        抽出結果を保存(フォルダ, 結果, 種類別出力=解析済み引数.種類別出力)
-        for コード in sorted(
-            set(
-                結果.失敗一覧
-                + [
-                    コード
-                    for 対象プロジェクト in 結果.プロジェクト一覧
-                    for コード in 対象プロジェクト.失敗一覧
-                ]
-            )
-        ):
-            ロガー.warning("%s", コード)
-        ロガー.info(
-            "終了 result=%s code=%d elapsed=%.3f", 結果.状態, 結果.終了コード, time.monotonic() - 開始時刻
-        )
-        # 成功通知の前にログを閉じ、最後の共有書込み失敗も終了コードへ反映する。
-        ロガー.removeHandler(ログハンドラー)
-        try:
-            ログハンドラー.close()
-        except OSError:
-            ログハンドラー.書込み失敗 = True
-        if ログハンドラー.書込み失敗:
-            通知(
-                "VBA2SRC 失敗",
-                "LOG_WRITE_FAILED：実行ログを書き込めません。共有先の接続と権限を確認してください。",
-                True,
-            )
-            return 1
-        抽出結果を表示(結果, フォルダ, time.monotonic() - 開始時刻)
-        return 結果.終了コード
-    except KeyboardInterrupt:
-        安全に表示("ユーザーにより中止しました。", True)
-        return 130
-    except Exception:
-        if ログハンドラー:
-            例外を記録("RUN_FAILED")
-            ロガー.error("RUN_FAILED")
-        import sys as system
-
-        例外種類 = system.exc_info()[0].__name__
-        通知(
-            "VBA2SRC 失敗",
-            f"{処理段階}に失敗しました（{例外種類}）。ネットワーク接続、権限、空き容量を確認してください。"
-            + (f"\n途中結果：{フォルダ}" if フォルダ else ""),
-            True,
-        )
-        return 1
-    finally:
-        if ログハンドラー:
-            ロガー.removeHandler(ログハンドラー)
-            try:
-                ログハンドラー.close()
-            except OSError:
-                安全に表示("LOG_CLOSE_FAILED：実行ログの終了書込みに失敗しました。", True)
+    実行 = 抽出を実行(
+        解析済み引数.対象,
+        解析済み引数.出力,
+        詳細ログ=解析済み引数.詳細ログ,
+        種類別出力=解析済み引数.種類別出力,
+    )
+    if 実行.メッセージ:
+        保存先案内 = f"\n途中結果：{実行.フォルダ}" if 実行.フォルダ else ""
+        通知("VBA2SRC 失敗", 実行.メッセージ + 保存先案内, True)
+    else:
+        抽出結果を表示(実行.結果, 実行.フォルダ, 実行.経過秒)
+    return 実行.終了コード
