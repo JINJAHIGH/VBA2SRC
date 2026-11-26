@@ -9,13 +9,10 @@ from ..console import 表示値
 
 
 class 候補設定(ttk.Frame):
-    """初期状態では候補の値を伏せて表示する。"""
-
     def __init__(自身, 親, 保存済み候補):
         super().__init__(親, padding=(16, 14))
         自身.既定候補 = list(config.VBA保護パスワード候補)
         自身.候補 = list(保存済み候補 if 保存済み候補 is not None else 自身.既定候補)
-        自身.表示切替 = tk.BooleanVar()
         自身.入力値 = tk.StringVar()
         自身.案内 = tk.StringVar()
 
@@ -35,13 +32,9 @@ class 候補設定(ttk.Frame):
         縦.grid(row=0, column=1, sticky="ns")
         自身.一覧.bind("<<TreeviewSelect>>", 自身.選択を反映)
 
-        入力欄 = ttk.Frame(自身)
-        入力欄.pack(fill="x", pady=(10, 8))
-        自身.入力 = ttk.Entry(入力欄, textvariable=自身.入力値, show="•")
-        自身.入力.pack(side="left", fill="x", expand=True, padx=(0, 12))
-        ttk.Checkbutton(入力欄, text="値を表示", variable=自身.表示切替, command=自身.表示を切替).pack(
-            side="right"
-        )
+        ttk.Label(自身, text="候補の入力・編集", style="Muted.TLabel").pack(anchor="w", pady=(8, 3))
+        自身.入力 = ttk.Entry(自身, textvariable=自身.入力値)
+        自身.入力.pack(fill="x", pady=(0, 8))
 
         操作 = ttk.Frame(自身)
         操作.pack(fill="x")
@@ -59,9 +52,8 @@ class 候補設定(ttk.Frame):
 
     def 一覧を更新(自身):
         自身.一覧.delete(*自身.一覧.get_children())
-        for 番号 in range(len(自身.候補)):
-            自身.一覧.insert("", "end", iid=str(番号))
-        自身.表示を切替()
+        for 番号, 候補 in enumerate(自身.候補):
+            自身.一覧.insert("", "end", iid=str(番号), values=(f"{番号 + 1}.   {表示値(候補)}",))
         自身.案内.set(f"{len(自身.候補)} 件。変更を反映するには「保存」を押してください。")
         自身.入力値.set("")
 
@@ -69,13 +61,6 @@ class 候補設定(ttk.Frame):
         行 = 自身.一覧.selection()
         if 行:
             自身.入力値.set(自身.候補[int(行[0])])
-
-    def 表示を切替(自身):
-        表示する = 自身.表示切替.get()
-        自身.入力.configure(show="" if 表示する else "•")
-        for 番号, 候補 in enumerate(自身.候補):
-            表示 = 表示値(候補) if 表示する else "••••••"
-            自身.一覧.item(str(番号), values=(f"{番号 + 1}.   {表示}",))
 
     def 追加(自身):
         値 = 自身.入力値.get()
@@ -105,7 +90,6 @@ class 候補設定(ttk.Frame):
 
     def 初期化(自身):
         自身.候補 = list(自身.既定候補)
-        自身.表示切替.set(False)
         自身.一覧を更新()
 
     def 設定値(自身):

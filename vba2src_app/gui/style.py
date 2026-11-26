@@ -21,24 +21,13 @@ def フォント一覧を取得(ウィンドウ):
     return sorted({名前 for 名前 in font.families(ウィンドウ) if not 名前.startswith("@")}, key=str.casefold)
 
 
-def フォントを適用(ウィンドウ, 設定, フォント一覧):
+def フォントを適用(ウィンドウ, 設定, フォント一覧, 画面標準字体):
     使用可能 = {unicodedata.normalize("NFKC", 名前).casefold(): 名前 for 名前 in フォント一覧}
-    画面候補 = (
-        設定.画面フォント,
-        "Hiragino Sans",
-        "ヒラギノ角ゴシック",
-        "Hiragino Kaku Gothic ProN",
-        "ヒラギノ角ゴ ProN",
-        "Hiragino Kaku Gothic Pro",
-        "ヒラギノ角ゴ Pro",
-        "BIZ UDPゴシック",
-        "BIZ UDPGothic",
-        "Yu Gothic UI",
-    )
+    画面候補 = (設定.画面フォント, "BIZ UDPゴシック", "BIZ UDPGothic")
     コード候補 = (設定.コードフォント, "MS ゴシック", "MS Gothic", "Consolas", "Menlo")
-    for 候補一覧, 基準フォント, 設定サイズ in (
-        (画面候補, "TkDefaultFont", 設定.画面サイズ),
-        (コード候補, "TkFixedFont", 設定.コードサイズ),
+    for 候補一覧, 基準フォント, 設定サイズ, 既定字体 in (
+        (画面候補, "TkDefaultFont", 設定.画面サイズ, 画面標準字体),
+        (コード候補, "TkFixedFont", 設定.コードサイズ, None),
     ):
         for 名前 in 候補一覧:
             選択 = 使用可能.get(unicodedata.normalize("NFKC", 名前).casefold())
@@ -46,7 +35,8 @@ def フォントを適用(ウィンドウ, 設定, フォント一覧):
                 font.nametofont(基準フォント).configure(family=選択, size=設定サイズ)
                 break
         else:
-            font.nametofont(基準フォント).configure(size=設定サイズ)
+            フォント = font.nametofont(基準フォント)
+            フォント.configure(family=既定字体 or フォント.actual("family"), size=設定サイズ)
 
     字体 = font.nametofont("TkDefaultFont").actual("family")
     サイズ = 設定.画面サイズ

@@ -7,15 +7,16 @@ import tkinter as tk
 from pathlib import Path
 from queue import SimpleQueue
 from threading import Thread
-from tkinter import filedialog, ttk
+from tkinter import filedialog, font, ttk
 
 from tkinterdnd2 import COPY, DND_FILES, REFUSE_DROP
 
 from ..preferences import 設定を読む
 from ..run import 抽出を実行
+from .help_dialog import 使い方画面
 from .results import 結果を読む
 from .settings_dialog import 設定画面
-from .style import フォントを適用, フォント一覧を取得, 外観を設定, 状態のスタイル, 背景色
+from .style import フォントを適用, フォント一覧を取得, 外観を設定, 状態のスタイル
 from .viewer import 結果ビュー
 
 対応形式 = (
@@ -55,6 +56,7 @@ class メイン画面:
         ウィンドウ.protocol("WM_DELETE_WINDOW", 自身.閉じる)
         自身.テーマ画像 = 外観を設定(ウィンドウ)
         自身.フォント一覧 = フォント一覧を取得(ウィンドウ)
+        自身.画面標準字体 = font.nametofont("TkDefaultFont").actual("family")
         自身.フォントを反映()
 
         本体 = ttk.Frame(ウィンドウ, style="Workspace.TFrame", padding=22)
@@ -142,7 +144,7 @@ class メイン画面:
         設定カード.pack(fill="x")
         ttk.Label(設定カード, text="出力オプション", style="Section.TLabel").pack(anchor="w", pady=(0, 8))
         for 文言, 変数 in (
-            ("モジュールを種類別にまとめる", 自身.まとめ設定),
+            ("モジュール別テキストファイル生成", 自身.まとめ設定),
             ("詳細ログを保存する", 自身.ログ設定),
         ):
             チェック = ttk.Checkbutton(設定カード, text=文言, variable=変数, style="Switch.TCheckbutton")
@@ -405,7 +407,7 @@ class メイン画面:
         自身.状態を表示("設定を保存しました。")
 
     def フォントを反映(自身):
-        フォントを適用(自身.ウィンドウ, 自身.設定, 自身.フォント一覧)
+        フォントを適用(自身.ウィンドウ, 自身.設定, 自身.フォント一覧, 自身.画面標準字体)
         最小幅 = max(1000, 1000 + (自身.設定.画面サイズ - 10) * 76)
         幅 = min(最小幅, 自身.ウィンドウ.winfo_screenwidth() - 28)
         高さ = min(740, 自身.ウィンドウ.winfo_screenheight() - 56)
@@ -415,27 +417,4 @@ class メイン画面:
         if 自身.ヘルプ and 自身.ヘルプ.winfo_exists():
             自身.ヘルプ.lift()
             return
-        画面 = 自身.ヘルプ = tk.Toplevel(自身.ウィンドウ)
-        画面.title("VBA2SRC | 使い方")
-        画面.transient(自身.ウィンドウ)
-        枠 = ttk.Frame(画面, style="Workspace.TFrame", padding=22)
-        枠.pack(fill="both", expand=True)
-        ttk.Label(枠, text="VBA2SRC の使い方", style="Heading.TLabel").pack(anchor="w", pady=(0, 12))
-        for 見出し, 説明 in (
-            (
-                "VBAを抽出",
-                "Officeファイルを入力するかドロップし、必要に応じて出力先とオプションを指定します。",
-            ),
-            ("抽出結果を確認", "保存済みの結果フォルダを開き、タブと一覧の行を選択して詳細を確認します。"),
-            (
-                "ドラッグ＆ドロップとCLI",
-                "OfficeファイルをEXEにドロップすると、元ファイルの隣に結果が作成されます。"
-                " CLIのオプションは VBA2SRC.exe --help で確認できます。",
-            ),
-        ):
-            ttk.Label(枠, text=見出し, style="Section.TLabel", background=背景色).pack(anchor="w")
-            ttk.Label(枠, text=説明, wraplength=460, style="WorkspaceMuted.TLabel").pack(
-                anchor="w", pady=(3, 12)
-            )
-        ttk.Button(枠, text="閉じる", command=画面.destroy).pack(anchor="e")
-        画面.resizable(False, False)
+        自身.ヘルプ = 使い方画面(自身.ウィンドウ)
