@@ -10,7 +10,7 @@ from packaging.requirements import Requirement
 
 
 def メイン():
-    未処理一覧 = ["oletools", "olefile", "msoffcrypto-tool", "pyOpenVBA", "PyInstaller"]
+    未処理一覧 = ["oletools", "olefile", "msoffcrypto-tool", "pyOpenVBA", "tkinterdnd2", "PyInstaller"]
     処理済み = set()
     Azureライセンス = リポジトリルート / "vba2src_app/gui/assets/azure/LICENSE"
     章一覧 = [f"\n{'=' * 72}\nAzure-ttk-theme\n" + Azureライセンス.read_text(encoding="utf-8")]

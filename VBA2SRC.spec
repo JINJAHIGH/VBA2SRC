@@ -15,6 +15,7 @@ for ディレクトリ in (Path(sys.base_prefix), Path(sys.base_prefix) / "abi3t
             if not any(Path(抽出元).name.lower() == DLLファイル.name.lower() for 抽出元, 未使用 in 同梱バイナリ):
                 同梱バイナリ.append((str(DLLファイル), "."))
 同梱データ = collect_data_files("oletools")
+同梱データ += collect_data_files("tkinterdnd2", includes=["tkdnd/win-x64*/**"], excludes=["**/*.lib"])
 for 名前 in ("oletools", "olefile", "msoffcrypto-tool", "cryptography", "pyOpenVBA"):
     同梱データ += copy_metadata(名前)
 同梱データ += [("LICENSE", "."), ("vba2src_app/gui/assets/azure", "vba2src_app/gui/assets/azure")]

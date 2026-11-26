@@ -4,18 +4,18 @@ import os
 import subprocess
 import sys
 import tkinter as tk
+from pathlib import Path
 from queue import SimpleQueue
 from threading import Thread
 from tkinter import filedialog, ttk
 
-import vba2src_config as config
+from tkinterdnd2 import COPY, DND_FILES, REFUSE_DROP
 
-from ..paths import 既定親フォルダを取得
 from ..preferences import 設定を読む
 from ..run import 抽出を実行
 from .results import 結果を読む
 from .settings_dialog import 設定画面
-from .style import フォントを適用, フォント一覧を取得, 外観を設定, 背景色
+from .style import フォントを適用, フォント一覧を取得, 外観を設定, 状態のスタイル, 背景色
 from .viewer import 結果ビュー
 
 対応形式 = (
@@ -34,17 +34,16 @@ def パス入力値(入力欄):
 
 
 class メイン画面:
-    def __init__(自身, ウィンドウ):
+    def __init__(自身, ウィンドウ, *, ドロップ有効):
         自身.ウィンドウ = ウィンドウ
+        自身.ドロップ有効 = ドロップ有効
         自身.処理中 = False
         自身.ヘルプ = None
         自身.設定ウィンドウ = None
         自身.設定 = 設定を読む()
         自身.待ち行列 = SimpleQueue()
         自身.対象 = tk.StringVar()
-        自身.初期保存先 = str(既定親フォルダを取得(config.既定保存先親フォルダ))
-        自身.既定保存先 = 自身.設定.保存先 or 自身.初期保存先
-        自身.保存先 = tk.StringVar(value=str(自身.既定保存先))
+        自身.保存先 = tk.StringVar(value=自身.設定.保存先)
         自身.ログ設定 = tk.BooleanVar()
         自身.まとめ設定 = tk.BooleanVar()
         自身.結果パス = tk.StringVar()
@@ -101,12 +100,13 @@ class メイン画面:
         ttk.Label(画面, text=説明, style="WorkspaceMuted.TLabel").pack(anchor="w", pady=(4, 16))
         return 画面
 
-    def パス欄を作成(自身, 親, 変数, 選択処理):
-        枠 = ttk.Frame(親)
+    def パス欄を作成(自身, 親, 変数, 選択処理, *, 入力スタイル="TEntry"):
+        枠スタイル = "Drop.TFrame" if 入力スタイル == "Drop.TEntry" else "TFrame"
+        枠 = ttk.Frame(親, style=枠スタイル)
         枠.pack(fill="x", pady=(5, 10))
-        入力欄 = ttk.Entry(枠, textvariable=変数)
+        入力欄 = ttk.Entry(枠, textvariable=変数, style=入力スタイル)
         入力欄.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        ボタン = ttk.Button(枠, text="参照…", command=選択処理)
+        ボタン = ttk.Button(枠, text="参照", width=8, command=選択処理)
         ボタン.pack(side="right")
         自身.操作部品.extend((入力欄, ボタン))
         return 入力欄
@@ -115,13 +115,26 @@ class メイン画面:
         画面 = 自身.見出しを作成("VBAを抽出", "Excel・Word・Access から、VBAソースと設定を保存します。")
         入力カード = ttk.Frame(画面, style="Card.TFrame", padding=18)
         入力カード.pack(fill="x", pady=(0, 12))
-        ttk.Label(入力カード, text="対象ファイル", style="Section.TLabel").pack(anchor="w")
-        自身.対象欄 = 自身.パス欄を作成(入力カード, 自身.対象, 自身.対象を選択)
-        ttk.Label(入力カード, text="保存先の親フォルダ", style="Section.TLabel").pack(anchor="w", pady=(8, 0))
+        対象枠 = ttk.Frame(入力カード, style="Drop.TFrame", padding=(12, 10))
+        対象枠.pack(fill="x")
+        ttk.Label(対象枠, text="対象ファイル", style="DropTitle.TLabel").pack(anchor="w")
+        自身.対象欄 = 自身.パス欄を作成(対象枠, 自身.対象, 自身.対象を選択, 入力スタイル="Drop.TEntry")
+        案内 = (
+            "Officeファイルをここにドラッグ＆ドロップできます。"
+            if 自身.ドロップ有効
+            else "パスを入力するか、参照ボタンでOfficeファイルを選択してください。"
+        )
+        ttk.Label(対象枠, text=案内, style="DropHint.TLabel").pack(anchor="w")
+        if 自身.ドロップ有効:
+            for 部品 in (対象枠, 自身.対象欄):
+                部品.drop_target_register(DND_FILES)
+                部品.dnd_bind("<<Drop>>", 自身.対象をドロップ)
+
+        ttk.Label(入力カード, text="出力先フォルダ", style="Section.TLabel").pack(anchor="w", pady=(14, 0))
         自身.パス欄を作成(入力カード, 自身.保存先, 自身.保存先を選択)
         ttk.Label(
             入力カード,
-            text="この中に対象ファイル名と日時を付けたフォルダを作成します。",
+            text="空欄の場合は、対象ファイルと同じフォルダに出力します。",
             style="Muted.TLabel",
         ).pack(anchor="w")
 
@@ -137,7 +150,7 @@ class メイン画面:
             自身.操作部品.append(チェック)
 
         実行ボタン = ttk.Button(
-            画面, text="抽出を実行", style="Accent.TButton", width=17, command=自身.抽出を開始
+            画面, text="出力を実行", style="Accent.TButton", width=17, command=自身.抽出を開始
         )
         実行ボタン.pack(anchor="e", pady=(16, 0))
         自身.操作部品.append(実行ボタン)
@@ -162,7 +175,11 @@ class メイン画面:
         開く = ttk.Button(操作欄, text="読み込む", command=自身.結果を開く, style="Accent.TButton")
         開く.pack(side="right", padx=(8, 0))
         自身.フォルダボタン = ttk.Button(
-            操作欄, text="フォルダを表示", command=自身.フォルダを表示, state="disabled"
+            操作欄,
+            text="フォルダを表示",
+            command=自身.フォルダを表示,
+            style="Important.TButton",
+            state="disabled",
         )
         自身.フォルダボタン.pack(side="right", padx=(12, 0))
         自身.操作部品.append(開く)
@@ -191,30 +208,51 @@ class メイン画面:
         パス = filedialog.askopenfilename(
             parent=自身.ウィンドウ,
             title="対象のOfficeファイルを選択",
-            initialdir=自身.既定保存先,
+            initialdir=自身.設定.保存先 or None,
             filetypes=(("Officeファイル", 全形式), *対応形式, ("すべてのファイル", "*")),
         )
         if パス:
             自身.対象.set(パス)
             自身.状態を表示("抽出する準備ができました。")
 
+    def 対象をドロップ(自身, イベント):
+        if 自身.処理中:
+            return REFUSE_DROP
+        try:
+            パス一覧 = 自身.ウィンドウ.tk.splitlist(イベント.data)
+            if len(パス一覧) != 1:
+                自身.状態を表示("対象ファイルを1件だけドロップしてください。", 状態="失敗")
+                return REFUSE_DROP
+            if not パス一覧[0] or not Path(パス一覧[0]).is_file():
+                自身.状態を表示("ドロップされたファイルを確認できません。", 状態="失敗")
+                return REFUSE_DROP
+        except (OSError, ValueError, tk.TclError):
+            自身.状態を表示("ドロップされたファイルを確認できません。", 状態="失敗")
+            return REFUSE_DROP
+        自身.対象.set(パス一覧[0])
+        自身.状態を表示("抽出する準備ができました。")
+        return COPY
+
     def 保存先を選択(自身):
         パス = filedialog.askdirectory(
-            parent=自身.ウィンドウ, title="保存先の親フォルダを選択", initialdir=自身.既定保存先
+            parent=自身.ウィンドウ,
+            title="出力先フォルダを選択",
+            initialdir=パス入力値(自身.保存先) or None,
         )
         if パス:
             自身.保存先.set(パス)
 
     def 結果を選択(自身):
         パス = filedialog.askdirectory(
-            parent=自身.ウィンドウ, title="保存済みの結果フォルダを選択", initialdir=自身.既定保存先
+            parent=自身.ウィンドウ, title="保存済みの結果フォルダを選択", initialdir=自身.設定.保存先 or None
         )
         if パス:
             自身.結果パス.set(パス)
             自身.結果を開く()
 
-    def 状態を表示(自身, メッセージ, *, エラー=False):
-        自身.状態ラベル.configure(style="Error.TLabel" if エラー else "WorkspaceMuted.TLabel")
+    def 状態を表示(自身, メッセージ, *, 状態=None):
+        スタイル = 状態のスタイル.get(状態)
+        自身.状態ラベル.configure(style=f"{スタイル}.Status.TLabel" if スタイル else "WorkspaceMuted.TLabel")
         自身.状態.set(メッセージ)
 
     def 抽出を開始(自身):
@@ -222,10 +260,10 @@ class メイン画面:
             return
         対象 = パス入力値(自身.対象)
         if not 対象:
-            自身.状態を表示("対象ファイルを指定してください。", エラー=True)
+            自身.状態を表示("対象ファイルを指定してください。", 状態="失敗")
             自身.対象欄.focus_set()
             return
-        保存先 = パス入力値(自身.保存先) or 自身.既定保存先
+        保存先 = パス入力値(自身.保存先) or None
         詳細ログ, まとめ出力 = 自身.ログ設定.get(), 自身.まとめ設定.get()
 
         def 処理():
@@ -243,11 +281,11 @@ class メイン画面:
             自身.結果を表示(結果)
         if 実行.メッセージ:
             案内 = f"  保存先：{実行.フォルダ}" if 実行.フォルダ else ""
-            自身.状態を表示(実行.メッセージ + 案内, エラー=True)
+            自身.状態を表示(実行.メッセージ + 案内, 状態="失敗")
         else:
             自身.状態を表示(
                 f"抽出結果：{実行.結果.状態}  ・  {実行.経過秒:.2f} 秒",
-                エラー=実行.終了コード == 1,
+                状態=実行.結果.状態,
             )
 
     def 結果を開く(自身):
@@ -255,7 +293,7 @@ class メイン画面:
             return
         パス = パス入力値(自身.結果パス)
         if not パス:
-            自身.状態を表示("結果フォルダを指定してください。", エラー=True)
+            自身.状態を表示("結果フォルダを指定してください。", 状態="失敗")
             return
         自身.結果表示をクリア()
         自身.処理を開始("結果フォルダを読み込んでいます…", lambda: 結果を読む(パス), 自身.読込を完了)
@@ -303,7 +341,7 @@ class メイン画面:
                 コマンド = "open" if sys.platform == "darwin" else "xdg-open"
                 subprocess.Popen([コマンド, str(フォルダ)])
         except OSError as 例外情報:
-            自身.状態を表示(f"フォルダを表示できませんでした。{例外情報}", エラー=True)
+            自身.状態を表示(f"フォルダを表示できませんでした。{例外情報}", 状態="失敗")
 
     def 処理を開始(自身, メッセージ, 処理, 完了処理):
         自身.処理中 = True
@@ -345,7 +383,7 @@ class メイン画面:
             RuntimeError,
             tk.TclError,
         ) as 例外情報:
-            自身.状態を表示(f"抽出結果を表示できませんでした。{例外情報}", エラー=True)
+            自身.状態を表示(f"抽出結果を表示できませんでした。{例外情報}", 状態="失敗")
 
     def 閉じる(自身):
         if 自身.処理中:
@@ -357,16 +395,12 @@ class メイン画面:
         if 自身.設定ウィンドウ and 自身.設定ウィンドウ.winfo_exists():
             自身.設定ウィンドウ.lift()
             return
-        自身.設定ウィンドウ = 設定画面(
-            自身.ウィンドウ, 自身.設定, 自身.フォント一覧, 自身.初期保存先, 自身.設定を反映
-        )
+        自身.設定ウィンドウ = 設定画面(自身.ウィンドウ, 自身.設定, 自身.フォント一覧, 自身.設定を反映)
 
     def 設定を反映(自身, 設定):
-        更新前 = 自身.既定保存先
+        if パス入力値(自身.保存先) == 自身.設定.保存先:
+            自身.保存先.set(設定.保存先)
         自身.設定 = 設定
-        自身.既定保存先 = 設定.保存先 or 自身.初期保存先
-        if パス入力値(自身.保存先) in ("", 更新前):
-            自身.保存先.set(自身.既定保存先)
         自身.フォントを反映()
         自身.状態を表示("設定を保存しました。")
 
@@ -388,7 +422,10 @@ class メイン画面:
         枠.pack(fill="both", expand=True)
         ttk.Label(枠, text="VBA2SRC の使い方", style="Heading.TLabel").pack(anchor="w", pady=(0, 12))
         for 見出し, 説明 in (
-            ("VBAを抽出", "Officeファイルと保存先を指定し、必要に応じてまとめ出力や詳細ログを選びます。"),
+            (
+                "VBAを抽出",
+                "Officeファイルを入力するかドロップし、必要に応じて出力先とオプションを指定します。",
+            ),
             ("抽出結果を確認", "保存済みの結果フォルダを開き、タブと一覧の行を選択して詳細を確認します。"),
             (
                 "ドラッグ＆ドロップとCLI",

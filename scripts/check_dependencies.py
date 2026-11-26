@@ -62,6 +62,7 @@ def メイン():
         "oletools.olevba",
         "msoffcrypto",
         "pyopenvba.access.database",
+        "tkinterdnd2",
         "cryptography.hazmat.bindings._rust",
     ):
         try:

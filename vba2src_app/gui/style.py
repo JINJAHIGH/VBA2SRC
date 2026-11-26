@@ -12,6 +12,9 @@ from tkinter import font, ttk
 強調色 = "#0758AE"
 罫線色 = "#D7DFEB"
 エラー色 = "#A4262C"
+成功色 = "#176341"
+注意色 = "#825300"
+状態のスタイル = {"成功": "Success", "失敗": "Error", "一部成功": "Partial"}
 
 
 def フォント一覧を取得(ウィンドウ):
@@ -56,7 +59,14 @@ def フォントを適用(ウィンドウ, 設定, フォント一覧):
         ("Metric.TLabel", サイズ + 7, "bold"),
         ("Treeview", サイズ, "normal"),
         ("Treeview.Heading", サイズ, "bold"),
-        ("TButton", サイズ, "bold"),
+        ("TButton", サイズ, "normal"),
+        ("Important.TButton", サイズ, "bold"),
+        ("Add.TButton", サイズ, "bold"),
+        ("Update.TButton", サイズ, "bold"),
+        ("Delete.TButton", サイズ, "bold"),
+        ("Reset.TButton", サイズ, "bold"),
+        ("Status.TLabel", サイズ, "bold"),
+        ("DropTitle.TLabel", サイズ + 1, "bold"),
         ("Accent.TButton", サイズ, "bold"),
         ("Selected.TButton", サイズ, "bold"),
         ("TNotebook.Tab", サイズ, "bold"),
@@ -94,6 +104,14 @@ def 外観を設定(ウィンドウ):
     スタイル.configure("Muted.TLabel", foreground=補足色)
     スタイル.configure("WorkspaceMuted.TLabel", foreground=補足色, background=背景色)
     スタイル.configure("Error.TLabel", foreground=エラー色, background=背景色)
+    for 名前, 色 in (("Success", 成功色), ("Error", エラー色), ("Partial", 注意色)):
+        スタイル.configure(f"{名前}.Status.TLabel", foreground=色, background=背景色)
+        スタイル.configure(f"{名前}.Metric.TLabel", foreground=色)
+    ドロップ背景 = "#EDF4FD"
+    スタイル.configure("Drop.TFrame", background=ドロップ背景)
+    スタイル.configure("DropTitle.TLabel", foreground=本文色, background=ドロップ背景)
+    スタイル.configure("DropHint.TLabel", foreground=補足色, background=ドロップ背景)
+    スタイル.configure("Drop.TEntry", padding=(10, 9))
     スタイル.configure("Metric.TLabel", foreground=強調色)
     スタイル.configure("Treeview.Heading", padding=(5, 4))
     スタイル.map("Treeview", background=[("selected", "#DCEBFC")], foreground=[("selected", 本文色)])
@@ -104,6 +122,10 @@ def 外観を設定(ウィンドウ):
         ("TButton", "RegularAction", 本文色, "#FFFFFF", 罫線色, "#EFF4FA", "#E4EDF9"),
         ("Accent.TButton", "PrimaryAction", "#FFFFFF", "#0965C7", "#0965C7", "#0758AE", "#064B96"),
         ("Selected.TButton", "SelectedAction", 強調色, "#E8F1FD", "#C8DCF5", "#DCEBFC", "#D2E4FA"),
+        ("Add.TButton", "AddAction", 成功色, "#E7F5ED", "#B8DDC8", "#D6EFDF", "#C1E6CF"),
+        ("Update.TButton", "UpdateAction", 強調色, "#E8F1FD", "#C8DCF5", "#DCEBFC", "#D2E4FA"),
+        ("Delete.TButton", "DeleteAction", エラー色, "#FCEBED", "#EFC7CC", "#F9DCE0", "#F1CFD4"),
+        ("Reset.TButton", "ResetAction", 注意色, "#FFF2D9", "#ECD3A0", "#FAE8BF", "#F0DCA9"),
     )
     for 名前, 要素名, 文字色, 通常色, 枠色, ホバー色, 押下色 in ボタン設定:
         通常, ホバー, 押下, 無効, フォーカス = [

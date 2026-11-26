@@ -7,7 +7,7 @@ from tkinter import ttk
 
 from ..console import 表示値
 from .results import 保存パスを取得
-from .style import 本文色, 罫線色
+from .style import 本文色, 状態のスタイル, 罫線色
 
 
 def 明細文字列(データ):
@@ -248,7 +248,9 @@ class 結果ビュー(ttk.Frame):
             カード = ttk.Frame(自身.指標, style="Card.TFrame", padding=(12, 9))
             カード.grid(row=0, column=列, padx=(0, 6), sticky="ew")
             ttk.Label(カード, text=名前, style="Muted.TLabel").pack(anchor="w")
-            ttk.Label(カード, text=値, style="Metric.TLabel").pack(anchor="w", pady=(2, 0))
+            状態スタイル = 状態のスタイル.get(値) if 名前 == "取得状態" else None
+            スタイル = f"{状態スタイル}.Metric.TLabel" if 状態スタイル else "Metric.TLabel"
+            ttk.Label(カード, text=値, style=スタイル).pack(anchor="w", pady=(2, 0))
 
         シート一覧 = [
             f"{行.get('表示名') or '—'} ({行.get('コードネーム') or '—'})"

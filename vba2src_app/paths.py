@@ -1,30 +1,11 @@
 """保存先の規則と、Windows互換の名前・衝突回避を管理する。"""
 
 import re
-import sys
 from datetime import datetime
 from pathlib import Path
 
 
 # ── 1. 保存先の決定 ──────────────────────────
-def ツールフォルダを取得():
-    """Python起動ファイルまたは実EXEの格納先を返す。一時展開先は使わない。"""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parent.parent
-
-
-def 既定親フォルダを取得(設定値):
-    """GUIの初期値を設定から決め、無効な設定はツール格納先へ戻す。"""
-    if 設定値:
-        パス = Path(設定値).expanduser()
-        if not パス.is_absolute():
-            パス = ツールフォルダを取得() / パス
-        if パス.is_dir():
-            return パス.resolve()
-    return ツールフォルダを取得()
-
-
 def 保存先の親を決定(対象, 指定先=None):
     """明示された保存先を優先し、省略時は対象ファイルの親を返す。"""
     # 存在確認・作成は後段で行う。共有先の障害時に別の場所へ退避しない。
