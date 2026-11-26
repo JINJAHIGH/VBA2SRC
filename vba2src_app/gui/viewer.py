@@ -6,8 +6,9 @@ from pathlib import Path
 from tkinter import ttk
 
 from ..console import 表示値
+from .diagnostics import VBA取得状況を取得, 診断の詳細を取得
 from .results import 保存パスを取得
-from .style import 本文色, 状態のスタイル, 罫線色
+from .style import 強調色, 本文色, 状態のスタイル, 罫線色
 
 
 def 明細文字列(データ):
@@ -126,15 +127,39 @@ class 結果ビュー(ttk.Frame):
         自身.タブ.add(自身.概要, text="概要")
         自身.指標 = ttk.Frame(自身.概要)
         自身.指標.pack(fill="x", pady=(0, 10))
-        自身.詳細一覧 = ttk.Treeview(自身.概要, columns=("項目", "値"), show="headings", selectmode="none")
+        一覧枠 = ttk.Frame(自身.概要)
+        一覧枠.pack(fill="both", expand=True)
+        自身.詳細一覧 = ttk.Treeview(
+            一覧枠, columns=("項目", "値"), show="headings", selectmode="none", height=6
+        )
         自身.詳細一覧.heading("項目", text="項目", anchor="w")
         自身.詳細一覧.heading("値", text="値", anchor="w")
         自身.詳細一覧.column("項目", width=185, stretch=False)
         自身.詳細一覧.column("値", width=360)
-        縦 = ttk.Scrollbar(自身.概要, orient="vertical", command=自身.詳細一覧.yview)
+        縦 = ttk.Scrollbar(一覧枠, orient="vertical", command=自身.詳細一覧.yview)
         自身.詳細一覧.configure(yscrollcommand=縦.set)
         縦.pack(side="right", fill="y")
         自身.詳細一覧.pack(fill="both", expand=True)
+
+        自身.診断枠 = ttk.Frame(自身.概要, style="Card.TFrame", padding=(9, 7))
+        自身.診断本文 = tk.Text(
+            自身.診断枠,
+            height=8,
+            wrap="word",
+            state="disabled",
+            relief="flat",
+            font="TkDefaultFont",
+            background="white",
+            foreground=本文色,
+            padx=5,
+            pady=3,
+            spacing3=3,
+        )
+        自身.診断本文.tag_configure("見出し", foreground=強調色)
+        診断スクロール = ttk.Scrollbar(自身.診断枠, orient="vertical", command=自身.診断本文.yview)
+        自身.診断本文.configure(yscrollcommand=診断スクロール.set)
+        診断スクロール.pack(side="right", fill="y")
+        自身.診断本文.pack(side="left", fill="both", expand=True)
 
         一覧設定 = [
             ("VBAソース", [("モジュール名", 190), ("種類", 180), ("取得状態", 105)], "ソースコード", True),
@@ -231,16 +256,20 @@ class 結果ビュー(ttk.Frame):
             "取得済みフォーム",
             lambda 番号: 自身.ファイルを読む(フォーム[番号].get("保存ファイル")),
         )
-        自身.概要を表示(結果, プロジェクト, 情報, 保護, len(モジュール))
+        自身.概要を表示(結果, プロジェクト, 情報, 保護, モジュール)
 
-    def 概要を表示(自身, 結果, プロジェクト, 情報, 保護, モジュール数):
+    def 概要を表示(自身, 結果, プロジェクト, 情報, 保護, モジュール):
         for ウィジェット in 自身.指標.winfo_children():
             ウィジェット.destroy()
         入力 = 結果.入力
+        取得済み数 = sum(項目.get("ソース取得状態") == "取得済み" for 項目 in モジュール)
+        モジュール件数 = f"{取得済み数} 件"
+        if 取得済み数 < len(モジュール):
+            モジュール件数 = f"{取得済み数} / {len(モジュール)} 件"
         指標一覧 = [
             ("取得状態", 入力.get("取得状態", "不明")),
             ("VBA", 入力.get("VBA有無", "不明")),
-            ("モジュール", f"{モジュール数} 件"),
+            ("取得モジュール", モジュール件数),
             ("名前定義", f"{len(結果.名前定義.get('名前定義一覧', []))} 件"),
         ]
         for 列, (名前, 値) in enumerate(指標一覧):
@@ -256,7 +285,6 @@ class 結果ビュー(ttk.Frame):
             f"{行.get('表示名') or '—'} ({行.get('コードネーム') or '—'})"
             for 行 in 情報.get("シート一覧", [])
         ]
-        診断 = 入力.get("失敗コード", []) + 情報.get("失敗コード", []) + 情報.get("診断コード", [])
         VBA保護状態 = 保護.get("VBA保護状態")
         概要 = [
             ("対象ファイル", 入力.get("元ファイル名")),
@@ -272,9 +300,31 @@ class 結果ビュー(ttk.Frame):
             (
                 ("名前定義の取得状態", 結果.名前定義.get("取得状態")),
                 ("シート / コードネーム", "  /  ".join(シート一覧)),
-                ("失敗・診断コード", "  /  ".join(sorted(set(診断)))),
             )
         )
         自身.詳細一覧.delete(*自身.詳細一覧.get_children())
         for 名前, 値 in 概要:
             自身.詳細一覧.insert("", "end", values=(名前, "—" if 値 is None or 値 == "" else 表示値(値)))
+        自身.診断を表示(結果)
+
+    def 診断を表示(自身, 結果):
+        コード一覧, 詳細 = 診断の詳細を取得(結果)
+        一部成功 = 結果.入力.get("取得状態") == "一部成功"
+        if not コード一覧 and not 一部成功:
+            自身.診断枠.pack_forget()
+            自身.詳細一覧.insert("", "end", values=("失敗・診断コード", "—"))
+            return
+
+        本文 = 自身.診断本文
+        本文.configure(state="normal")
+        本文.delete("1.0", "end")
+        本文.insert("end", "失敗・診断コード\n", "見出し")
+        本文.insert("end", ("  /  ".join(コード一覧) or "—") + "\n\n")
+        本文.insert("end", "事象の詳細\n", "見出し")
+        if 一部成功:
+            本文.insert("end", VBA取得状況を取得(結果) + "\n")
+        for 説明 in 詳細 or ["事象の詳細が保存されていません。"]:
+            本文.insert("end", "・" + 説明 + "\n")
+        本文.configure(state="disabled")
+        本文.yview_moveto(0)
+        自身.診断枠.pack(side="bottom", fill="x", pady=(8, 0), before=自身.詳細一覧.master)

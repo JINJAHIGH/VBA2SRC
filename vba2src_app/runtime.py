@@ -55,50 +55,6 @@ def コンソールを準備():
     """Windows配布EXEを親コンソールへ接続する。"""
     if os.name != "nt" or not getattr(sys, "frozen", False):
         return
-    import ctypes
+    from .windows_console import 標準入出力を接続
 
-    Windows関数群 = ctypes.WinDLL("kernel32", use_last_error=True)
-    Windows関数群.AttachConsole(ctypes.c_uint32(-1))
-    Windows関数群.GetStdHandle.restype = ctypes.c_void_p
-    # 呼び出し元から受け取ったリダイレクト先を優先する。
-    for 属性名, フラグ in (("stdout", -11), ("stderr", -12), ("stdin", -10)):
-        if getattr(sys, 属性名) is not None:
-            continue
-        ハンドル = Windows関数群.GetStdHandle(ctypes.c_uint32(フラグ))
-        if ハンドル not in (None, 0, ctypes.c_void_p(-1).value):
-            try:
-                import msvcrt
-
-                # 呼び出し元のハンドルを閉じないよう、複製をストリームへ渡す。
-                現在値 = Windows関数群.GetCurrentProcess
-                現在値.restype = ctypes.c_void_p
-                複製ハンドル = ctypes.c_void_p()
-                Windows関数群.DuplicateHandle.argtypes = [
-                    ctypes.c_void_p,
-                    ctypes.c_void_p,
-                    ctypes.c_void_p,
-                    ctypes.POINTER(ctypes.c_void_p),
-                    ctypes.c_uint32,
-                    ctypes.c_int,
-                    ctypes.c_uint32,
-                ]
-                if Windows関数群.DuplicateHandle(
-                    現在値(), ハンドル, 現在値(), ctypes.byref(複製ハンドル), 0, False, 2
-                ):
-                    読取り = 属性名 == "stdin"
-                    ファイル記述子 = msvcrt.open_osfhandle(
-                        複製ハンドル.value, os.O_RDONLY if 読取り else os.O_WRONLY
-                    )
-                    setattr(
-                        sys,
-                        属性名,
-                        os.fdopen(
-                            ファイル記述子,
-                            "r" if 読取り else "w",
-                            encoding="utf-8",
-                            errors="strict" if 読取り else "backslashreplace",
-                            buffering=1,
-                        ),
-                    )
-            except (OSError, ValueError):
-                pass
+    標準入出力を接続()

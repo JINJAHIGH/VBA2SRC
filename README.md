@@ -3,7 +3,7 @@
 Officeを起動せず、Excel・Word・AccessファイルからVBAソースと保存情報を読み取り専用で抽出します。
 VBAの実行、元ファイルの保護変更、Officeへの書き戻しは行いません。
 
-バージョン1.6.2、JSONスキーマ2。ビルド済みのEXEはPythonやOfficeがないPCでも実行できます。
+バージョン1.6.3、JSONスキーマ2。ビルド済みのEXEはPythonやOfficeがないPCでも実行できます。
 
 ## 起動方法
 
@@ -17,7 +17,7 @@ Windows x64 向けのビルド済み [VBA2SRC.exe](https://github.com/JINJAHIGH/
 EXEを直接開くか、引数なしで `python vba2src.py` を実行します。
 
 - **VBAを抽出** で対象のOfficeファイルを入力、参照、または対象欄にドラッグ＆ドロップします。出力先を空欄にすると対象ファイルの隣へ保存します。「モジュール別テキストファイル生成」や詳細ログが必要な場合は、対応するスイッチをオンにします。
-- **抽出結果を確認** では、概要、VBAソース、参照設定、条件付きコンパイル引数、名前定義、フォーム、保存ファイルを確認できます。一覧の行を選ぶと詳細が開きます。概要では、VBA保護が「あり」の場合に VBAパスワードを表示します。
+- **抽出結果を確認** では、概要、VBAソース、参照設定、条件付きコンパイル引数、名前定義、フォーム、保存ファイルを確認できます。一覧の行を選ぶと詳細が開きます。概要では、VBA保護が「あり」の場合に VBAパスワードを表示します。一部成功のときは、VBAソースの取得状況と、読み取れなかった項目の説明を「事象の詳細」に表示します。
 - 保存済みの結果は「結果フォルダ」から開けます。旧バージョンの `設定情報/` 形式（JSONスキーマ2）も読み込めます。複数プロジェクトはプロジェクト欄で切り替えます。
 
 GUIはTkinterと [Azure-ttk-theme](https://github.com/rdbende/Azure-ttk-theme) を使用します。Windows配布EXEにはTkとテーマを同梱しています。
@@ -33,6 +33,7 @@ python vba2src.py
 python vba2src.py "C:\Work\対象 ファイル (1).xlsm"
 python vba2src.py "Y:\部門共通\対象.xlsm" -o "Y:\抽出結果" --no-ui --debug-log
 .\dist\VBA2SRC.exe "\\server\share\対象.xlsm" --no-ui
+.\dist\VBA2SRC.exe --help
 ```
 
 | 引数 | 動作 |
