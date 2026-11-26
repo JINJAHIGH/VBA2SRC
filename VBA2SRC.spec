@@ -17,7 +17,7 @@ for ディレクトリ in (Path(sys.base_prefix), Path(sys.base_prefix) / "abi3t
 同梱データ = collect_data_files("oletools")
 for 名前 in ("oletools", "olefile", "msoffcrypto-tool", "cryptography", "pyOpenVBA"):
     同梱データ += copy_metadata(名前)
-同梱データ += [("LICENSE", "."), ("vba2src_app/title.txt", "vba2src_app")]
+同梱データ += [("LICENSE", "."), ("vba2src_app/gui/assets/azure", "vba2src_app/gui/assets/azure")]
 ライセンス通知 = Path(SPECPATH) / "build/THIRD_PARTY_NOTICES.txt"
 if ライセンス通知.is_file():
     同梱データ += [(str(ライセンス通知), ".")]
@@ -25,7 +25,7 @@ if ライセンス通知.is_file():
 # コンソールは起動時の引数に応じてruntime.pyで接続する。
 解析定義 = Analysis(["vba2src.py"], pathex=[SPECPATH], binaries=同梱バイナリ, datas=同梱データ,
                     hiddenimports=[],
-                    hookspath=[], runtime_hooks=[], excludes=["tkinter"], noarchive=False)
+                    hookspath=[], runtime_hooks=[], excludes=[], noarchive=False)
 Pythonアーカイブ = PYZ(解析定義.pure)
 # リダイレクトされた標準入出力でも、日本語のパスをUTF-8で扱う。
 実行オプション = [("X utf8", None, "OPTION")]

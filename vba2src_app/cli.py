@@ -1,80 +1,17 @@
-"""引数と質問への回答を受け付け、抽出・保存・コンソール表示を統括する。"""
+"""引数の有無でGUI起動とコマンドライン実行を切り替える。"""
 
 import argparse
 import sys
-from pathlib import Path
-
-import vba2src_config as config
 
 from . import __version__
-from .paths import 既定親フォルダを取得
+from .console import 抽出結果を表示, 通知
 from .run import 抽出を実行
 from .runtime import コンソールを準備, 安全に表示, 標準ストリームを補完
-from .ui import 入力見出しを表示, 抽出結果を表示, 色付き表示, 起動案内を表示, 通知
 
 
-# ── 1. 引数なしの対話入力 ──────────────────────────
-def 回答を取得(質問):
-    """対話入力の引用符と中止指示を扱う。候補パスワードは入力しない。"""
-    値 = input(質問).strip()
-    if 値.casefold() in ("q", "quit"):
-        raise KeyboardInterrupt
-    if len(値) >= 2 and 値[0] == 値[-1] and 値[0] in ('"', "'"):
-        値 = 値[1:-1]
-    return 値
-
-
-def 対話モードを実行(終了待ち=False):
-    """引数なし起動の質問を順に処理し、確定値を共通の実行経路へ渡す。"""
-    コード = 130
-    try:
-        起動案内を表示()
-        入力見出しを表示(1, "対象ファイル")
-        while True:
-            対象 = 回答を取得("  パス > ")
-            try:
-                if 対象 and Path(対象).is_file():
-                    break
-            except (OSError, ValueError):
-                pass
-            色付き表示("  ファイルが見つかりません。パス・接続・権限を確認してください。", "注意")
-        既定値 = 既定親フォルダを取得(config.既定保存先親フォルダ)
-        入力見出しを表示(2, "保存先の親フォルダ", "空欄なら次の場所へ保存します。")
-        安全に表示(f"      {既定値}")
-        while True:
-            出力 = 回答を取得("  保存先 > ") or str(既定値)
-            try:
-                if not Path(出力).exists() or Path(出力).is_dir():
-                    break
-            except (OSError, ValueError):
-                pass
-            色付き表示("  フォルダとして使用できません。別の保存先を入力してください。", "注意")
-        入力見出しを表示(3, "詳細ログ")
-        while True:
-            詳細ログ = 回答を取得("  保存しますか？ [y/N] > ").casefold()
-            if 詳細ログ in ("", "n", "no", "y", "yes"):
-                break
-            色付き表示("  y または n を入力してください。", "注意")
-        色付き表示("\n  抽出しています…")
-        引数一覧 = [対象, "-o", 出力, "--no-ui"]
-        if 詳細ログ in ("y", "yes"):
-            引数一覧.append("--debug-log")
-        コード = メイン(引数一覧)
-    except (EOFError, KeyboardInterrupt):
-        色付き表示("\n  中止しました。", "注意")
-    if 終了待ち and sys.stdin.isatty():
-        try:
-            input("  Enterキーで終了 > ")
-        except (EOFError, KeyboardInterrupt):
-            pass
-    return コード
-
-
-# ── 2. 引数解析と通知 ──────────────────────────
+# ── 1. 引数解析と通知 ──────────────────────────
 class 引数エラー(Exception):
     """画面なし起動でも呼び出し元が扱える引数エラー。"""
-
-    pass
 
 
 class 引数解析器(argparse.ArgumentParser):
@@ -111,14 +48,17 @@ def 引数解析器を作成():
     return 結果
 
 
-# ── 3. 抽出処理の実行と終了 ──────────────────────────
+# ── 2. 抽出処理の実行と終了 ──────────────────────────
 def メイン(起動引数=None):
     """実行単位のログを開始し、入力・保存の失敗を固定の終了コードへ変換する。"""
     起動引数 = list(sys.argv[1:] if 起動引数 is None else 起動引数)
-    コンソール作成済み = コンソールを準備(作成を許可=not 起動引数)
-    標準ストリームを補完()
     if not 起動引数:
-        return 対話モードを実行(終了待ち=コンソール作成済み)
+        標準ストリームを補完()
+        from .gui import GUIを起動
+
+        return GUIを起動()
+    コンソールを準備()
+    標準ストリームを補完()
     try:
         解析済み引数 = 引数解析器を作成().parse_args(起動引数)
     except 引数エラー as 例外情報:

@@ -12,7 +12,8 @@ from packaging.requirements import Requirement
 def メイン():
     未処理一覧 = ["oletools", "olefile", "msoffcrypto-tool", "pyOpenVBA", "PyInstaller"]
     処理済み = set()
-    章一覧 = []
+    Azureライセンス = リポジトリルート / "vba2src_app/gui/assets/azure/LICENSE"
+    章一覧 = [f"\n{'=' * 72}\nAzure-ttk-theme\n" + Azureライセンス.read_text(encoding="utf-8")]
     while 未処理一覧:
         名前 = 未処理一覧.pop(0)
         配布情報 = メタデータ.distribution(名前)

@@ -51,35 +51,19 @@ def 安全に表示(メッセージ, 例外情報=False):
 
 
 # ── 2. Windowsコンソールの接続 ──────────────────────────
-def コンソールを準備(作成を許可=False):
-    """親コンソールへ接続する。新規作成は引数なしの対話起動だけに許可する。"""
+def コンソールを準備():
+    """Windows配布EXEを親コンソールへ接続する。"""
     if os.name != "nt" or not getattr(sys, "frozen", False):
-        return False
+        return
     import ctypes
 
     Windows関数群 = ctypes.WinDLL("kernel32", use_last_error=True)
+    Windows関数群.AttachConsole(ctypes.c_uint32(-1))
     Windows関数群.GetStdHandle.restype = ctypes.c_void_p
-    Windows関数群.GetFileType.argtypes = [ctypes.c_void_p]
-    Windows関数群.GetConsoleWindow.restype = ctypes.c_void_p
-    接続済み = Windows関数群.AttachConsole(ctypes.c_uint32(-1))
-    入出力あり = all(
-        Windows関数群.GetFileType(Windows関数群.GetStdHandle(ctypes.c_uint32(フラグ)))
-        for フラグ in (-10, -11)
-    )
-    作成済み = bool(
-        作成を許可
-        and not 接続済み
-        and not Windows関数群.GetConsoleWindow()
-        and not 入出力あり
-        and Windows関数群.AllocConsole()
-    )
-    if 作成済み:
-        Windows関数群.SetConsoleTitleW("VBA2SRC")
     # 呼び出し元から受け取ったリダイレクト先を優先する。
     for 属性名, フラグ in (("stdout", -11), ("stderr", -12), ("stdin", -10)):
         if getattr(sys, 属性名) is not None:
             continue
-        Windows関数群.GetStdHandle.restype = ctypes.c_void_p
         ハンドル = Windows関数群.GetStdHandle(ctypes.c_uint32(フラグ))
         if ハンドル not in (None, 0, ctypes.c_void_p(-1).value):
             try:
@@ -118,4 +102,3 @@ def コンソールを準備(作成を許可=False):
                     )
             except (OSError, ValueError):
                 pass
-    return 作成済み

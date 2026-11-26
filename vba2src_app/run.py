@@ -7,17 +7,20 @@ import time
 from dataclasses import dataclass
 from importlib import metadata as メタデータ
 from pathlib import Path
+from threading import get_ident
 
 import vba2src_config as config
 
 from . import __version__
 from .model import 抽出結果
 from .paths import 保存先の親を決定, 結果フォルダを作成
+from .preferences import 設定を読む
 from .runtime import LFログハンドラー, 例外を記録
 
 実行ログ = logging.getLogger("vba2src")
 実行ログ.addHandler(logging.NullHandler())
 実行ログ.propagate = False
+実行ログ.setLevel(logging.DEBUG)
 
 
 @dataclass
@@ -60,8 +63,10 @@ def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類�
             ログフォルダ.mkdir()
             ログハンドラー = LFログハンドラー(ログフォルダ / "実行ログ.txt", encoding="utf-8")
             ログハンドラー.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+            # 同じプロセスから並行実行しても、対象ごとのログを混在させない。
+            実行スレッド = get_ident()
+            ログハンドラー.addFilter(lambda レコード: レコード.thread == 実行スレッド)
             実行ログ.addHandler(ログハンドラー)
-            実行ログ.setLevel(logging.DEBUG)
             実行ログ.info("開始 VBA2SRC %s input=%s output=%s", __version__, 対象, フォルダ)
             実行ログ.info("Python=%s OS=%s", sys.version.split()[0], sys.platform)
             for 名前 in ("oletools", "olefile", "msoffcrypto-tool", "cryptography", "pyOpenVBA"):
@@ -75,7 +80,9 @@ def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類�
         from .extract import 抽出
         from .output import 抽出結果を保存
 
-        結果 = 抽出(対象, config.VBA保護パスワード候補)
+        利用者候補 = 設定を読む().VBA候補
+        候補 = config.VBA保護パスワード候補 if 利用者候補 is None else 利用者候補
+        結果 = 抽出(対象, 候補)
         処理段階 = "抽出結果の書込み"
         抽出結果を保存(フォルダ, 結果, 種類別出力=種類別出力)
         if ログハンドラー:
@@ -100,7 +107,6 @@ def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類�
     finally:
         if ログハンドラー:
             実行ログ.removeHandler(ログハンドラー)
-            実行ログ.setLevel(logging.NOTSET)
             try:
                 ログハンドラー.close()
             except OSError:

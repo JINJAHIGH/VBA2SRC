@@ -2,10 +2,8 @@
 
 import os
 import sys
-from importlib.resources import files
 from pathlib import Path
 
-from . import __version__
 from .runtime import 安全に表示
 
 # ── 1. 端末の色と表示値 ───────────────────────────────────
@@ -51,28 +49,7 @@ def 表示値(値):
     )
 
 
-# ── 2. 起動案内と入力の見出し ─────────────────────────────
-def 起動案内を表示():
-    """ビルドスクリプトと同じASCIIタイトル、対応形式、短い操作案内を表示する。"""
-    安全に表示("")
-    色付き表示(files("vba2src_app").joinpath("title.txt").read_text(encoding="ascii").rstrip("\n"))
-    色付き表示(f"  VBA2SRC {__version__}", "補足")
-    安全に表示("\n  Officeを起動せず、VBA・名前定義を抽出します。\n")
-    色付き表示("  【対応ファイル】")
-    安全に表示("  Excel             .xlsx .xlsm .xls .xla .xlsb .xltm .xlam .xltx")
-    安全に表示("  Word              .docx .docm .dotx .dotm .doc .dot")
-    安全に表示("  Access            .accdb .mdb")
-    安全に表示("\n  パスを貼り付けてEnter。中止は q。")
-
-
-def 入力見出しを表示(番号, 見出し, 補足=None):
-    """質問ごとに余白を設け、入力対象と既定値を分けて表示する。"""
-    色付き表示(f"\n  {番号:02d}  {見出し}")
-    if 補足:
-        色付き表示(f"      {補足}", "補足")
-
-
-# ── 3. 終了状態の表示 ─────────────────────────────────────
+# ── 2. 終了状態の表示 ─────────────────────────────────────
 def 通知(タイトル, メッセージ, 例外情報=False):
     """ポップアップを使わず、利用可能なコンソールへ結果と原因を表示する。"""
     種類 = "失敗" if 例外情報 else "案内"

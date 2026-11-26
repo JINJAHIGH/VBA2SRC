@@ -33,7 +33,9 @@ def 要件を収集(定義パス, 読取済み=None):
 
 def メイン():
     引数解析器 = argparse.ArgumentParser(description=__doc__)
-    引数解析器.add_argument("--environment-only", action="store_true", help="PythonのバージョンとOSだけを確認する")
+    引数解析器.add_argument(
+        "--environment-only", action="store_true", help="PythonのバージョンとOSだけを確認する"
+    )
     引数 = 引数解析器.parse_args()
     ルート = Path(__file__).resolve().parent.parent
     print(f"Python {platform.python_version()} / {struct.calcsize('P') * 8} bit / {sys.platform}")
