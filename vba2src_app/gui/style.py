@@ -101,7 +101,7 @@ def 外観を設定(ウィンドウ):
     スタイル.configure("Drop.TFrame", background=ドロップ背景)
     スタイル.configure("DropTitle.TLabel", foreground=本文色, background=ドロップ背景)
     スタイル.configure("DropHint.TLabel", foreground=補足色, background=ドロップ背景)
-    スタイル.configure("Drop.TEntry", padding=(10, 9))
+    スタイル.configure("Drop.TEntry", padding=(10, 9, 40, 9))
     スタイル.configure("Metric.TLabel", foreground=強調色)
     スタイル.configure("Treeview.Heading", padding=(5, 4))
     スタイル.map("Treeview", background=[("selected", "#DCEBFC")], foreground=[("selected", 本文色)])

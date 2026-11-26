@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from . import __version__
-from .console import 抽出結果を表示, 通知
+from .console import 抽出結果を表示, 色付き表示, 通知
 from .run import 抽出を実行
 from .runtime import コンソールを準備, 安全に表示, 標準ストリームを補完
 
@@ -81,4 +81,6 @@ def メイン(起動引数=None):
         通知("VBA2SRC 失敗", 実行.メッセージ + 保存先案内, True)
     else:
         抽出結果を表示(実行.結果, 実行.フォルダ, 実行.経過秒)
+    if 実行.設定の注意:
+        色付き表示(f"  注意：{実行.設定の注意}", "注意", 例外情報=True)
     return 実行.終了コード

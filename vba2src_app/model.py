@@ -60,6 +60,8 @@ class 抽出結果:
         default_factory=lambda: {"status": "判定不能", "items": [], "diagnostics": [], "part": None}
     )
 
+    SHA256: str | None = None
+
     @property
     def 終了コード(自身):
         """有用な部分回収の有無と失敗状態から、0・1・3を決定する。"""

@@ -16,7 +16,7 @@ from ..run import 抽出を実行
 from .help_dialog import 使い方画面
 from .results import 結果を読む
 from .settings_dialog import 設定画面
-from .style import フォントを適用, フォント一覧を取得, 外観を設定, 状態のスタイル
+from .style import フォントを適用, フォント一覧を取得, 外観を設定, 強調色, 状態のスタイル
 from .viewer import 結果ビュー
 
 対応形式 = (
@@ -128,7 +128,15 @@ class メイン画面:
         )
         ttk.Label(対象枠, text=案内, style="DropHint.TLabel").pack(anchor="w")
         if 自身.ドロップ有効:
-            for 部品 in (対象枠, 自身.対象欄):
+            アイコン = tk.Canvas(自身.対象欄, width=23, height=22, background="white", highlightthickness=0)
+            アイコン.create_line(11.5, 2, 11.5, 13, fill=強調色, width=2, capstyle="round")
+            アイコン.create_line(7.5, 9, 11.5, 13, 15.5, 9, fill=強調色, width=2, joinstyle="round")
+            アイコン.create_line(
+                3.5, 14, 3.5, 19, 19.5, 19, 19.5, 14, fill=強調色, width=2, joinstyle="round"
+            )
+            アイコン.place(relx=1, x=-10, rely=0.5, anchor="e")
+            アイコン.bind("<Button-1>", lambda イベント: 自身.対象欄.focus_set())
+            for 部品 in (対象枠, 自身.対象欄, アイコン):
                 部品.drop_target_register(DND_FILES)
                 部品.dnd_bind("<<Drop>>", 自身.対象をドロップ)
 
@@ -286,9 +294,11 @@ class メイン画面:
             自身.状態を表示(実行.メッセージ + 案内, 状態="失敗")
         else:
             案内 = "  ・  概要の「事象の詳細」を確認してください。" if 実行.終了コード == 3 else ""
+            if 実行.設定の注意:
+                案内 += f"  ・  {実行.設定の注意}"
             自身.状態を表示(
                 f"抽出結果：{実行.結果.状態}  ・  {実行.経過秒:.2f} 秒{案内}",
-                状態=実行.結果.状態,
+                状態="一部成功" if 実行.設定の注意 and 実行.終了コード == 0 else 実行.結果.状態,
             )
 
     def 結果を開く(自身):

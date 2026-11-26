@@ -3,15 +3,15 @@
 import tkinter as tk
 from tkinter import ttk
 
-import vba2src_config as config
-
+from ..candidate_config import 候補設定エラー, 既定候補を読む
 from ..console import 表示値
 
 
 class 候補設定(ttk.Frame):
     def __init__(自身, 親, 保存済み候補):
         super().__init__(親, padding=(16, 14))
-        自身.既定候補 = list(config.VBA保護パスワード候補)
+        自身.設定案内 = tk.StringVar()
+        自身.既定候補を反映()
         自身.候補 = list(保存済み候補 if 保存済み候補 is not None else 自身.既定候補)
         自身.入力値 = tk.StringVar()
         自身.案内 = tk.StringVar()
@@ -21,6 +21,9 @@ class 候補設定(ttk.Frame):
             anchor="w", pady=(3, 8)
         )
 
+        ttk.Label(自身, textvariable=自身.設定案内, style="Muted.TLabel", wraplength=440).pack(
+            anchor="w", pady=(0, 8)
+        )
         一覧枠 = ttk.Frame(自身)
         一覧枠.pack(fill="x")
         一覧枠.columnconfigure(0, weight=1)
@@ -88,7 +91,17 @@ class 候補設定(ttk.Frame):
         else:
             自身.案内.set("削除する候補の行を選択してください。")
 
+    def 既定候補を反映(自身):
+        try:
+            自身.既定候補 = list(既定候補を読む())
+        except 候補設定エラー as 例外情報:
+            自身.既定候補 = []
+            自身.設定案内.set(str(例外情報))
+        else:
+            自身.設定案内.set("既定候補は vba2src_config.py から読み込みます。")
+
     def 初期化(自身):
+        自身.既定候補を反映()
         自身.候補 = list(自身.既定候補)
         自身.一覧を更新()
 

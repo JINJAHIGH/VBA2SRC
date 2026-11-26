@@ -9,9 +9,8 @@ from importlib import metadata as メタデータ
 from pathlib import Path
 from threading import get_ident
 
-import vba2src_config as config
-
 from . import __version__
+from .candidate_config import 候補設定エラー, 既定候補を読む
 from .model import 抽出結果
 from .paths import 保存先の親を決定, 結果フォルダを作成
 from .preferences import 設定を読む
@@ -30,6 +29,7 @@ class 実行結果:
     結果: 抽出結果 | None = None
     メッセージ: str = ""
     経過秒: float = 0
+    設定の注意: str = ""
 
 
 def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類別出力=False):
@@ -37,6 +37,7 @@ def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類�
     フォルダ = None
     結果 = None
     ログハンドラー = None
+    設定の注意 = ""
     開始時刻 = time.monotonic()
     処理段階 = "入力ファイルの確認"
     try:
@@ -53,6 +54,16 @@ def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類�
             return 実行結果(
                 1, メッセージ="対象は通常ファイルではありません。Officeファイルを指定してください。"
             )
+        処理段階 = "VBA保護パスワード候補の読込み"
+        利用者候補 = 設定を読む().VBA候補
+        候補 = 利用者候補
+        if 候補 is None:
+            try:
+                候補 = 既定候補を読む()
+            except 候補設定エラー as 例外情報:
+                設定の注意 = str(例外情報) + " VBA保護の候補なしで抽出します。"
+                候補 = ()
+
         処理段階 = "保存先の決定"
         親 = 保存先の親を決定(対象, 保存先)
         処理段階 = "結果フォルダの作成"
@@ -69,6 +80,8 @@ def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類�
             実行ログ.addHandler(ログハンドラー)
             実行ログ.info("開始 VBA2SRC %s input=%s output=%s", __version__, 対象, フォルダ)
             実行ログ.info("Python=%s OS=%s", sys.version.split()[0], sys.platform)
+            if 設定の注意:
+                実行ログ.warning("%s", 設定の注意)
             for 名前 in ("oletools", "olefile", "msoffcrypto-tool", "cryptography", "pyOpenVBA"):
                 try:
                     バージョン = メタデータ.version(名前)
@@ -80,8 +93,6 @@ def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類�
         from .extract import 抽出
         from .output import 抽出結果を保存
 
-        利用者候補 = 設定を読む().VBA候補
-        候補 = config.VBA保護パスワード候補 if 利用者候補 is None else 利用者候補
         結果 = 抽出(対象, 候補)
         処理段階 = "抽出結果の書込み"
         抽出結果を保存(フォルダ, 結果, 種類別出力=種類別出力)
@@ -115,4 +126,4 @@ def 抽出を実行(対象パス, 保存先=None, *, 詳細ログ=False, 種類�
     if ログハンドラー and ログハンドラー.書込み失敗 and not メッセージ:
         終了コード = 1
         メッセージ = "LOG_WRITE_FAILED：実行ログを書き込めません。保存先の接続と権限を確認してください。"
-    return 実行結果(終了コード, フォルダ, 結果, メッセージ, time.monotonic() - 開始時刻)
+    return 実行結果(終了コード, フォルダ, 結果, メッセージ, time.monotonic() - 開始時刻, 設定の注意)

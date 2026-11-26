@@ -26,7 +26,7 @@ if ライセンス通知.is_file():
 # コンソールは起動時の引数に応じてruntime.pyで接続する。
 解析定義 = Analysis(["vba2src.py"], pathex=[SPECPATH], binaries=同梱バイナリ, datas=同梱データ,
                     hiddenimports=[],
-                    hookspath=[], runtime_hooks=[], excludes=[], noarchive=False)
+                    hookspath=[], runtime_hooks=[], excludes=["vba2src_config"], noarchive=False)
 Pythonアーカイブ = PYZ(解析定義.pure)
 # リダイレクトされた標準入出力でも、日本語のパスをUTF-8で扱う。
 実行オプション = [("X utf8", None, "OPTION")]

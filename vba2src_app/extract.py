@@ -1,5 +1,6 @@
 """OLE・OOXMLの入力を識別し、プロジェクトとソースを読み取る。"""
 
+import hashlib
 import io
 import logging
 import posixpath
@@ -517,6 +518,7 @@ def 抽出(対象, 候補一覧=()):
     結果 = 抽出結果(対象.name)
     try:
         データ = 対象.read_bytes()  # 元ファイルは一度だけ読み、以降はメモリ上のデータを解析する。
+        結果.SHA256 = hashlib.sha256(データ).hexdigest()
         if データ.startswith(olefile.MAGIC):
             OLE入力を解析(データ, 候補一覧, 結果)
         elif データ.startswith(b"PK"):
