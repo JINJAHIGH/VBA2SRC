@@ -198,15 +198,53 @@ try {
 
     $Pip引数 = $Python引数 + @('-m', 'pip', '--disable-pip-version-check', '--no-input')
     $計画パス = [System.IO.Path]::ChangeExtension($ログ保存先, '.pip.json')
+    $計画引数 = $Pip引数 + @('install', '--dry-run', '--quiet', '--report', $計画パス, '-r', 'requirements-build.txt')
+    $固定要件 = Get-Content -LiteralPath (Join-Path $script:ルート 'requirements.txt') |
+        Where-Object { $_ -match '^tkinterdnd2==' } | Select-Object -First 1
+    $固定版 = ($固定要件 -split '==', 2)[1]
+    $ローカル元 = ''
     try {
-        $計画引数 = $Pip引数 + @('install', '--dry-run', '--quiet', '--report', $計画パス, '-r', 'requirements-build.txt')
-        外部コマンドを実行 $Pythonコマンド $計画引数 '依存ライブラリの確認' 2 7
-        $導入計画 = Get-Content -LiteralPath $計画パス -Raw -Encoding UTF8 | ConvertFrom-Json
+        try {
+            外部コマンドを実行 $Pythonコマンド $計画引数 '依存ライブラリの確認' 2 7
+        } catch {
+            ビルドログを表示 'オンライン依存確認に失敗しました。ローカルの tkinterdnd2 で再試行できます。' Yellow
+            $ローカル元 = ([string](Read-Host 'tkinterdnd2 のwheelまたは展開済みフォルダのパス（空欄で中止）')).Trim().Trim('"')
+            if (-not $ローカル元) { exit 130 }
+        }
+        if (-not $ローカル元) {
+            $導入計画 = Get-Content -LiteralPath $計画パス -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($導入計画.install | Where-Object { $_.metadata.name -ieq 'tkinterdnd2' }) {
+                $回答 = ([string](Read-Host "tkinterdnd2 $固定版 を導入します。yes またはローカルパス（空欄で中止）")).Trim().Trim('"')
+                if (-not $回答) { exit 130 }
+                if ($回答 -ne 'yes') { $ローカル元 = $回答 }
+            }
+        }
+        if ($ローカル元) {
+            $項目 = Get-Item -LiteralPath $ローカル元
+            if (-not $項目.PSIsContainer -and $項目.Extension -ine '.whl') {
+                throw 'ローカル導入にはwheelまたは展開済みソースフォルダを指定してください。'
+            }
+            $ローカル引数 = $Pip引数 + @('install', '--no-index', '--no-build-isolation', $項目.FullName)
+            try {
+                外部コマンドを実行 $Pythonコマンド ($ローカル引数 + @('--dry-run', '--ignore-installed', '--no-deps', '--report', $計画パス)) 'ローカルパッケージの名前と版を確認' 7 8
+                $ローカル計画 = Get-Content -LiteralPath $計画パス -Raw -Encoding UTF8 | ConvertFrom-Json
+                if (@($ローカル計画.install).Count -ne 1 -or $ローカル計画.install[0].metadata.name -ine 'tkinterdnd2' -or
+                    $ローカル計画.install[0].metadata.version -ne $固定版 -or -not $ローカル計画.install[0].is_direct) {
+                    throw "指定したパッケージは tkinterdnd2==$固定版 と一致しません。"
+                }
+                外部コマンドを実行 $Pythonコマンド $ローカル引数 'ローカルパッケージを導入' 8 9
+            } catch {
+                throw ("ローカル導入に失敗しました。パッケージ名と版、pipのログを確認してください。ソースからの導入では事前にビルド依存が必要です。 " + $_.Exception.Message)
+            }
+            外部コマンドを実行 $Pythonコマンド $計画引数 '残りの依存ライブラリの確認' 9 10
+            $導入計画 = Get-Content -LiteralPath $計画パス -Raw -Encoding UTF8 | ConvertFrom-Json
+        }
     } finally {
         if (Test-Path -LiteralPath $計画パス) { Remove-Item -LiteralPath $計画パス }
     }
     $導入対象 = @(foreach ($項目 in $導入計画.install) { '{0}=={1}' -f $項目.metadata.name, $項目.metadata.version })
     foreach ($ライブラリ in $導入対象) {
+        if ($ライブラリ -ieq "tkinterdnd2==$固定版") { continue }
         ビルドログを表示 "$ライブラリ を導入しますか？ 同意する場合は yes を入力"
         $回答 = Read-Host '回答'
         if (([string]$回答).Trim() -ne 'yes') {

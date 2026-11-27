@@ -13,6 +13,7 @@ from tkinterdnd2 import COPY, DND_FILES, REFUSE_DROP
 
 from ..preferences import 設定を読む
 from ..run import 抽出を実行
+from .batch_window import 一括画面
 from .help_dialog import 使い方画面
 from .results import 結果を読む
 from .settings_dialog import 設定画面
@@ -43,6 +44,7 @@ class メイン画面:
         自身.設定ウィンドウ = None
         自身.設定 = 設定を読む()
         自身.待ち行列 = SimpleQueue()
+        自身.進捗待ち行列 = SimpleQueue()
         自身.対象 = tk.StringVar()
         自身.保存先 = tk.StringVar(value=自身.設定.保存先)
         自身.ログ設定 = tk.BooleanVar()
@@ -78,7 +80,12 @@ class メイン画面:
         自身.パネル = ttk.Frame(本体, style="Workspace.TFrame")
         自身.パネル.grid(row=1, column=1, sticky="nsew")
         自身.画面一覧 = {}
-        for 名前, 構築 in (("VBAを抽出", 自身.入力画面を作成), ("抽出結果を確認", 自身.結果画面を作成)):
+        for 名前, 構築 in (
+            ("VBAを抽出", 自身.入力画面を作成),
+            ("抽出結果を確認", 自身.結果画面を作成),
+            ("比較", lambda: 一括画面(自身, False).画面),
+            ("検索", lambda: 一括画面(自身, True).画面),
+        ):
             ボタン = ttk.Button(
                 ナビ, text=名前, width=15, command=lambda 画面名=名前: 自身.画面を切替(画面名)
             )
@@ -373,7 +380,15 @@ class メイン画面:
         Thread(target=実行, daemon=True).start()
         自身.ウィンドウ.after(60, 自身.処理を確認, 完了処理)
 
+    def 進捗を通知(自身, メッセージ):
+        自身.進捗待ち行列.put(メッセージ)
+
     def 処理を確認(自身, 完了処理):
+        最新進捗 = None
+        while not 自身.進捗待ち行列.empty():
+            最新進捗 = 自身.進捗待ち行列.get_nowait()
+        if 最新進捗:
+            自身.状態を表示(最新進捗)
         if 自身.待ち行列.empty():
             自身.ウィンドウ.after(60, 自身.処理を確認, 完了処理)
             return
